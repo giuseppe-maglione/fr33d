@@ -20,9 +20,9 @@ bool check_resources() {
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
     GlobalMemoryStatusEx(&memInfo); // Windows API to read memory
     
-    DWORDLONG ram_gb = memInfo.ullTotalPhys / (1024 * 1024 * 1024);
+    DWORDLONG ram_mb = memInfo.ullTotalPhys / (1024 * 1024);
     
-    if (ram_gb < 4) {
+    if (ram_mb < 3000) { 
         return false; 
     }
 

