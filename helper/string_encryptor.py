@@ -33,7 +33,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # secret string that MUST NOT compare in .c file
-    data = args.data
+    data = args.data + "\x00"
     key = args.key
     
     print("--- Print this string in your C code ---")
