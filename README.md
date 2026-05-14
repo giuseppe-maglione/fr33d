@@ -25,8 +25,7 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 
 ### 4. Process Injection & Networking
 - **Modular Downloader**: Uses WinINet to download the encrypted shellcode/payload from a remote C2 server.
-- **Stealth Injection**: Injects shellcode into system processes (e.g., `svchost.exe`) spawned in a `CREATE_SUSPENDED` state (Process Hollowing / Remote Thread Injection).
-- **Memory Management**: Uses `VirtualProtectEx` to manage memory permissions (RWX/RX) required for the execution of complex shellcode loaders (Donut, Meterpreter, Sliver).
+- **Stealth Injection**: Injects shellcode into system processes (`svchost.exe`).
 
 ---
 
@@ -53,6 +52,10 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 ## 🔨 Compilation and Weaponization
 
 The project requires the `mingw-w64` cross-compiler on Linux.
+
+```
+# Code not yet available
+```
 
 ---
 
