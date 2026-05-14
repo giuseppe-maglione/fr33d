@@ -2,27 +2,26 @@
 
 This project is a **Proof of Concept (PoC)** of a modular dropper written in C, designed for educational purposes and for the study of advanced evasion and code injection techniques in Windows environments. The implant is structured to evade static and dynamic analysis by Windows Defender.
 
-## ⚠️ Disclaimer
-**For educational purposes only.** The use of this code for malicious or illegal purposes is strictly prohibited. The developer assumes no responsibility for the misuse of this material. Test only in isolated, authorized, and controlled environments (Sandbox/Lab).
+> ⚠️ **Disclaimer**: For educational purposes only. The use of this code for malicious or illegal purposes is strictly prohibited. The developer assumes no responsibility for the misuse of this material. Test only in isolated, authorized, and controlled environments (Sandbox/Lab).
 
 ---
 
 ## 🚀 Advanced Features
 
 ### 1. Static Evasion and Obfuscation
-- **API Hashing (DJB2)**: No direct calls to Windows APIs in the Import Address Table (IAT). Functions are resolved at runtime via string name hashing (`evasion.c` module).
+- **API Hashing (DJB2)**: No direct calls to Windows APIs in the Import Address Table (IAT). Functions are resolved at runtime via string name hashing.
 - **XOR String Encryption**: All sensitive strings (DLL names, target processes, registry keys) are encrypted via XOR with a dynamic key and decrypted only in the stack right before use.
+- **OPSEC**: All sensitive strings are re-encrypted immediately after use.
 - **Binary Stripping**: The executable is stripped of debug symbols and metadata during compilation.
-- **OPSEC**: 
 
-### 2. Dynamic Evasion (Anti-Analysis)
+### 2. Dynamic Evasion
 - **Anti-Sandboxing**: Hardware resource checks to detect execution in virtual machines or constrained analysis environments.
 - **Smart Delay**: A "smart" calculation loop to bypass sandbox wait times without using the `Sleep()` function.
 - **Polymorphism**: The Python weaponization script generates a unique SHA-256 hash for each build by appending random bytes in the overlay at the end of the file.
 
 ### 3. Persistence and Control
 - **Identifying Mutex**: Checks for the presence of a unique (encrypted) Mutex to prevent multiple redundant executions on the same host.
-- **Auto-Persistence**: The dropper copies itself into the `%APPDATA%` folder with a legitimate-looking name (e.g., `OneDrive_Updater.exe`) and ensures startup at boot via Windows registry.
+- **Auto-Persistence**: Copies itself into the `%APPDATA%` folder with a legitimate-looking name (`OneDrive_Updater.exe`) and ensures startup at boot via Windows registry.
 
 ### 4. Process Injection & Networking
 - **Modular Downloader**: Uses WinINet to download the encrypted shellcode/payload from a remote C2 server.
