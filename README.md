@@ -75,15 +75,18 @@ The project requires the `mingw-w64` cross-compiler on Linux.
 1. `src/config.h` (C2 URL for the dropper)
 2. `attacker/start_c2.sh` (LHOST and LPORT for payload generation and listener)
 
-> **Ethical Note:** For testing and educational purposes, the project currently relies on a default hardcoded XOR key provided in `config.h`. Full instructions for generating and implementing custom encryption keys are intentionally omitted from this PoC.
+> **Ethical Note:** For testing and educational purposes, the project currently relies on a default hardcoded XOR key provided in `config.h`. Full instructions for generating and implementing custom encryption keys are intentionally omitted from this PoC. *Hint: Try playing around with the files in the `/tools` folder*
 
 ### Deployment Steps
 
 **1. Compile and Weaponize:**
 Run the automated builder to compile the C code, strip metadata, and apply polymorphism. 
 ```bash
-# Basic build with a custom name
-python3 tools/builder.py --name "OneDrive_Updater.exe"
+# Build default (OneDrive_Updater.exe)
+python3 tools/builder.py
+
+# Build with a custom name
+python3 tools/builder.py --name "CustomName.exe"
 
 # Build in debug mode (shows terminal and verbose logging)
 python3 tools/builder.py --debug
