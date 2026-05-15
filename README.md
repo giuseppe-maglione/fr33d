@@ -79,7 +79,7 @@ The project requires the `mingw-w64` cross-compiler on Linux.
 
 ### Deployment Steps
 
-**1. Compile and Weaponize**
+**1. Compile and Weaponize:**
 Run the automated builder to compile the C code, strip metadata, and apply polymorphism. 
 ```bash
 # Basic build with a custom name
@@ -90,17 +90,17 @@ python3 tools/builder.py --debug
 ```
 The generated payload will be saved in the `build/` directory.
 
-**2. Launch C2 Infrastructure**
+**2. Launch C2 Infrastructure:**
 Start the automated script to generate the raw shellcode, host it via a background Python web server, and launch the Metasploit listener.
 ```bash
 chmod +x ./attacker/start_c2.sh
 ./attacker/start_c2.sh
 ```
 
-**3. Transfer the Payload**
+**3. Transfer the Payload:**
 Transfer the generated executable from your `build/` folder to the target Windows machine (e.g., by hosting it on a web server or transferring it via USB for lab testing).
 
-**4. Execute**
+**4. Execute:**
 Run the dropper on the target machine. Once the sandbox checks and smart delays are bypassed, the payload will be downloaded and injected, returning a reverse shell/beacon to your active Metasploit handler.
 
 ---
