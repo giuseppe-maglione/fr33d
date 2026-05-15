@@ -5,16 +5,27 @@
 #include <windows.h> 
 #include <stdbool.h>
 
+// --- ENCRYPTION
+
 // cypher/decypher data with XOR
 void xor_crypt(char *data, size_t data_len, const char *key, size_t key_len);
 
-// --- ANTI-SANDBOX ---
+// --- ANTI-SANDBOX
 
 // check machine resources (RAM and cores)
 bool check_resources();
 
 // execute complex calculations to make the AV timeout.
 void smart_delay();
+
+// check if malware is attached to a debugger
+bool check_debugger();
+
+// check machine startup time
+bool check_uptime();
+
+// check if executed in VM
+bool check_vm();
 
 // --- ANTI-CRASH
 

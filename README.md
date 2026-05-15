@@ -11,12 +11,15 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 ### 1. Static Evasion and Obfuscation
 - **API Hashing (DJB2)**: No direct calls to Windows APIs in the Import Address Table (IAT). Functions are resolved at runtime via string name hashing.
 - **XOR String Encryption**: All sensitive strings (DLL names, target processes, registry keys) are encrypted via XOR with a dynamic key and decrypted only in the stack right before use.
-- **OPSEC**: All sensitive strings are re-encrypted immediately after use.
+- **OPSEC**: All sensitive strings are re-encrypted immediately after use to prevent memory scraping.
 - **Binary Stripping**: The executable is stripped of debug symbols and metadata during compilation.
 
-### 2. Dynamic Evasion
-- **Anti-Sandboxing**: Hardware resource checks to detect execution in virtual machines or constrained analysis environments.
+### 2. Dynamic Evasion (Anti-Analysis)
+- **Anti-Debugging**: Runtime detection of possible attached debuggers.
+- **Anti-VM**: Direct querying of the processor via the `__cpuid` instruction to detect hypervisors.
+- **Anti-Sandboxing**: Verifies system uptime as a common indicator of a dynamically spun-up sandbox environment.
 - **Smart Delay**: A "smart" calculation loop to bypass sandbox wait times without using the `Sleep()` function.
+- **Resource Checking**: Hardware resource checks to detect constrained analysis environments.
 - **Polymorphism**: The Python weaponization script generates a unique SHA-256 hash for each build by appending random bytes in the overlay at the end of the file.
 
 ### 3. Persistence and Control
@@ -33,7 +36,7 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 
 ```text
 .
-├── code/
+├── src/
 │   ├── main.c           # Entry point and core logic
 │   ├── evasion.c        # Anti-VM, Hashing, XOR, Mutex
 │   ├── network.c        # Payload download manager
@@ -41,9 +44,17 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 │   ├── persistence.c    # Persistence installation and registry
 │   ├── config.h         # Definitions and constants
 │   └── ...              # Header files
-├── helper/
-│   ├── mutator.py       # Polymorphic builder and stripping
-│   └── hasher.py        # DJB2 hash generator for APIs
+├── tools/
+│   ├── malware_mutator.py      # Polymorphic builder and stripping
+│   ├── stack_string.py         # C Macro generator for Stack String with XOR
+│   ├── string_encryptor.py     # Strings encryptor based on secret key
+│   └── hasher.py               # DJB2 hash generator for APIs
+├── payloads/
+│    └── calc.c          # Light testing shellcode
+├── build/
+│    └── malware.exe     # Final executable
+├── docs/
+│    └── ...             # Documentation
 └── README.md
 ```
 

