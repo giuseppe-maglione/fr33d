@@ -30,6 +30,9 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 - **Modular Downloader**: Uses WinINet to download the encrypted shellcode/payload from a remote C2 server.
 - **Stealth Injection**: Injects shellcode into system processes (`svchost.exe`).
 
+### 5. Automated C2 Infrastructure
+- **One-Click Deployment**: A dedicated Bash script (`start_c2.sh`) automates the full attacker infrastructure setup.
+
 ---
 
 ## 🛠️ Project Architecture
@@ -49,6 +52,10 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 │   ├── stack_string.py         # C Macro generator for Stack String with XOR
 │   ├── string_encryptor.py     # Strings encryptor based on secret key
 │   └── hasher.py               # DJB2 hash generator for APIs
+├── attacker/
+│   ├── www/
+│   │   └── ...           # Web Server Folder
+│   └── start_c2.sh       # Launch Automated C2 Infrastructure
 ├── payloads/
 │    └── calc.c          # Light testing shellcode
 ├── build/

