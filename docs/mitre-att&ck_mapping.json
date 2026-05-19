@@ -127,7 +127,7 @@
 		{
 			"techniqueID": "T1036",
 			"tactic": "stealth",
-			"color": "",
+			"color": "#e60d0d",
 			"comment": "",
 			"enabled": true,
 			"metadata": [],
