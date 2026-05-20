@@ -116,34 +116,36 @@ The implant was successfully tested on **Windows 11 (23H2)**, bypassing standard
 
 > Inspired by the most emotional artist in the world.
 
-B####BBGGGBBBBBBBBBBBBBBPPGBGPPGGBBGPPGGGPGGGYYPGGP55PP5YYY555PP5
-########B######BBB##B##BBGBBBBBBBBBBBBBBBBBBGPPGBGP5555P5555PPGGP
-##&&&####################B##############BBB#BBBBBBGPPPPGPPPPGGBBG
-#&&&##&######################################BBBBBGGGGGGGGBBGBBBB
-&&&&&&&######################################BBBBBGGPGGBGGBGGBBBB
-&#&&&#&&########B##BBBGGGGB##################BBBBBGGBBBBBBBB###BB
-&&&&&#&########BGG5J7~^^^:!YPGBBB#####B###B#BBBBBBGGBBBBBBBBBBBGB
-&&&&&########BGPJ7^::.::..:^^7!?5PBBBBBBBBB#BBBBBBGGBBB#BBBBBBBGG
-&&&&&&&######BP?~:..:..:::::..  :75GBBBBBBBBBBBBBBBBBBBBBGBBBBBGG
-&&&&&######BB5J!~...:......:: .. ^?PGBBBBBBBBBGBB#BBBBBBBB#B##BGP
-#&&#######BBP?!.:......  ....  ^ ^!5GGBBBBBBBBGB######BBBB#BB#BPP
-##&&#######BGJ!^ ..  ... :..   :~?5PGBBBBBBBBBB########BBBBBBBBPP
-###########BBP?~.     .::.    :~?5PGGGGBBBBBBBB####B#B##BBBBBBBPP
-##########BBBGPY?^.. .      ...^?5PPPPGGGGGGGGBB##BBBBBBBBBBBBB5Y
-##########BBBGGPPJ7!...:^~~!!~:.:75PPGGPGGPGBB##########BB#BB##P5
-#########BBBBBGGPPP5YYJJ?7!!!!~^..~JPP5PP55GGGBB##BBBBBBBBBGBBB5J
-##########BBBBGBGGGPGP5Y?!^....:^::.!???77?7!^^~75GBBBBBBBBBBBB5?
-##&############BBBBBBBPJ!^.     ^?J!:..::   :   :?PBBBB#BGBBGGB5?
-&&&&&##########BBBBBBBP?!. :.   ^YPPPYJ7!^^^^?7!~^JPBBBBBGPPPGBY7
-##&&###&###########BBGY?~ ~!JYJ?J5BB###BBGY7~^7PBPGGBBBBBGGGGGBY!
-##############BBBBBBBBBGP?YYPBBBB#BB#BBBB###GY~~5PBBBBGGGGGPPGGJ~
-#########B##BB##BBBBBBBBB#BBBBGGGBBB##B#####G5J.JPPGBGGGPPP55PP?^
-########BB#BBBB#BB#BBBBBBB##BBBBBBBB########BPP7~55GGGGGP5PPPGGJ^
-####B55PPPPPPPPPPGGGGGGBBBBBBBBBBGBBBB#####BBGP5:Y5PGGGGP5PPPPPJ^
-#B##G55555555555555555555555GGGPPPGBGBBB#####BGP^J5PBBBGPPGGGGGY~
-####G55555555555555555555555GGGPPGGBBBBB#####BGP!?YYPP5P55P55PPY~
-&&&&P5555555555555555555555P#B#BBBB##########BBBBBGPGP5P5555PPPY~
-&&&#55555555555555555555555G&##########&&&#&&#BBBBBGGGGGPPPPPPGY^
-&&&&BBBBGGGGGPPPPPPP5555555B&&&&&&&&&&&&&&&&&#######BBBBGGBGGGPJ^
-&&&&&&&&&&&&&&&&#########B##&&&&&&&&&#&&&&&&######BBBBBBPGGPPPPJ^
-&&#&&#####################&&&##&&&#&&##&###&##B#BBGGGGPP5555YYYJ:
+.....'.'',.........'....;'..',,'....,,'..,'''c:,..,:;',;c:;;;;,;;
+.........................,....'.....'....'..';;'..,;;,:,:cc;,,',,
+..    .......................................''...',,;,,,;,,;,'.'
+        .. ....... ... ....  .... . ...............'.'''''''.....
+        ........................   ...............'''''.''.......
+           ...................... .................''............
+         ...........,,;;;:.......................................
+          ......,;ckOXNNXMKdc,...................................
+         .....':d0XNXNNXWNKXW0NOo:...............................
+         .....;dOXMNNMWNXNXXNNNMNk:'.............................
+        .....:dk0WWWNNWWWWMNNMMNMKx;...........................',
+       .....'okNNWWWWWWMMNWNWMMKWKx;'..........................,,
+     . ......lO0MNWWWWWWWNWNMMWXOl;''..........................,;
+     . ......'oONMMWMWNNNWMMMMX0d;'''..........................,,
+    ..........,:l0NNMWWWWWWWNWWKo:,,,'''..'....................;:
+... ..........'';lxkWWNXK0Okk0XWXk:,'''''.,'...................,;
+..............'',,;;::lloxkkOO00NNOl;;;;;;;'...................;l
+..   . .........''.,',;cdxKWWNWXXXNXklodddoxkKK0d;'............:o
+         .............,lOKWWWMMMKooOXWN0XMMMXWMW0l;............;o
+       . .............,lxNMNWMMW0c,,,ldk0XK00dk0XXo,.....'',,'.cd
+            ..........cxOM0kocdxo;.......,oOXKo,.,'............ck
+        ...............';kcl;...............,:KO:'.......'.,,''lO
+... ...........................''............;lWc;''...',,,:;,;oK
+..  .........................................';xk:;.....,;,,;''lK
+.....,,,''''''...............................';:Ncc;.''';;,;;,,l0
+.....;;;;;;;;;;;;;;;;;;;;;,,...'''........  ..''X:;'....,'.'.'':0
+....';;;;;;;;;;;;;;;;;;;;;;;',';,'........ ...';Odcc''',;;,,,''cO
+    ,;;;;;;;;;;;;;;;;;;;;;;,............   .....,',;',:,;:;;;,,c0
+    ;;;;;;;;;;;;;;;;;;;;;;;' ..........      ......'.',',;;;,,'c0
+    ,,,;;;;;;;;;;;;;;;;;;;;.                  ..........''..''':0
+            ............'''.                 ...........''..'',cK
+                                             .........'',,,,:;;lK
+     ..  .................   .           .. .....''';,::cc:cclloX
