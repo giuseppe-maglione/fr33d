@@ -7,6 +7,6 @@
 
 // download a payload and save in memory
 // return pointer to memory location or null if fails
-char* download_payload(const char* url, SIZE_T* payload_size);
+char* download_payload(SIZE_T* payload_size);
 
 #endif
