@@ -73,7 +73,10 @@ with open(compiled_exe, "rb") as f:
 junk_size = random.randint(16, 64)
 junk_bytes = os.urandom(junk_size)
 
-mutated_content = exe_content + junk_bytes
+if args.debug:
+    mutated_content = exe_content
+else:
+    mutated_content = exe_content + junk_bytes
 
 with open(final_exe, "wb") as f:
     f.write(mutated_content)
