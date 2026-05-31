@@ -1,0 +1,1 @@
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"Downlaod detected (OneDrive_Component.bin) - fr33d malware"; flow:established,to_server; http.method; content:"GET"; http.uri; content:"/OneDrive_Component.bin"; fast_pattern; http.user_agent; content:"Mozilla/5.0"; classtype:trojan-activity; sid:1000003; rev:2;)

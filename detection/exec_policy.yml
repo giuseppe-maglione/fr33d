@@ -1,0 +1,18 @@
+title: PowerShell ExecutionPolicy Bypass
+id: xxxxxxxx-yyyy-zzzz-wwww-qqqqqqqqqqqq
+status: experimental
+description: Detects PowerShell ExecutionPolicy bypass by writing Registry key.
+author: giu
+date: 2026/05/31
+logsource:
+    product: windows
+    category: registry_event
+detection:
+    selection:
+        TargetObject|contains: 'Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell'
+        TargetObject|contains: 'ExecutionPolicy'
+        Details: 'Bypass'
+    condition: selection
+falsepositives:
+		- Administrator that executes script to setup user PowerShell configuration
+level: high

@@ -1,0 +1,17 @@
+title: Fake OneDrive file creation
+id: xxxxxxxx-yyyy-zzzz-wwww-qqqqqqqqqqqq
+status: experimental
+description: Detects malicious file creation inside the user's AppData folder.
+author: giu
+date: 2026/05/31
+logsource:
+    product: windows
+    category: file_event
+detection:
+    selection:
+        EventID: 11
+        TargetFilename|re: '(?i)^C:\\Users\\[^\\]+\\AppData\\Roaming\\OneDrive_Update\\OneDriveUpdate\.exe$'
+    condition: selection
+falsepositives:
+    - Unknown
+level: critical

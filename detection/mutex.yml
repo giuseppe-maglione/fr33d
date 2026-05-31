@@ -1,0 +1,18 @@
+title: Fake OneDrivMutex Creation
+id: xxxxxxxx-yyyy-zzzz-wwww-qqqqqqqqqqqq
+status: experimental
+description: Detects malicious mutex creation.
+author: giu
+date: 2026/05/31
+logsource:
+    product: windows
+    service: sysmon
+detection:
+    selection:
+	EventID: 4656
+        ObjectType: 'Mutant'
+        Details: 'Global\OneDriveSyncMutex'
+    condition: selection
+falsepositives:
+    - Unknown
+level: high
