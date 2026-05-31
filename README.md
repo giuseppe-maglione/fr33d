@@ -25,6 +25,7 @@ This project is a **Proof of Concept (PoC)** of a modular dropper written in C, 
 ### 3. Persistence and Control
 - **Identifying Mutex**: Checks for the presence of a unique (encrypted) Mutex to prevent multiple redundant executions on the same host.
 - **Modular-Persistence**: Choose between Windows Registry and PowerShell Profiles persistence modules.
+- **PowerShell’s Execution Policy Bypass**: If persistence via PowerShell Profiles is enabled, PowerShell’s Execution Policy is bypassed by configuring the `ExecutionPolicy` value within the appropriate Windows Registry path
 
 ### 4. Process Injection & Networking
 - **Modular Downloader**: Uses WinINet to download the encrypted shellcode/payload from a remote C2 server.
@@ -90,14 +91,14 @@ python3 tools/builder.py
 # You should use this to test the malware in controlled environment
 python3 tools/builder.py --test
 
+# Build in debug mode (shows terminal and verbose logging)
+python3 tools/builder.py --debug
+
 # Build selecting persistence module
 python3 tools/builder.py --persistence [reg, ps]
 
 # Build with a custom name
 python3 tools/builder.py --name "CustomName.exe"
-
-# Build in debug mode (shows terminal and verbose logging)
-python3 tools/builder.py --debug
 ```
 The generated payload will be saved in the `build/` directory.
 
