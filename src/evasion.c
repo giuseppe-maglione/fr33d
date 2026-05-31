@@ -52,6 +52,10 @@ bool check_mutex() {
     xor_crypt(enc_mutex, sizeof(enc_mutex), cypher_key, cypher_key_len);
 
     // check if already running
+    if (hMutex == NULL) {
+        return false;
+    }
+    
     if (fnGetLastError() == ERROR_ALREADY_EXISTS) {
         return false;
     }
